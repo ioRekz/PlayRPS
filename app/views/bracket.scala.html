@@ -1,0 +1,126 @@
+@(user: String, playersList: Seq[String])(implicit request: RequestHeader) 
+
+
+<ul id="players">
+
+</ul>
+
+<div class="bracketcont">
+<canvas id="jqtourney">
+</canvas>
+</div>
+<script>
+
+
+function drawGames(roundIdx) {
+
+	var round = rounds[roundIdx]
+
+	var str = $("#tourney").html()
+
+	str+='<div  style="float:left;" id="round_'+roundIdx+'">'
+
+	for(var i=0;i<round.length;i++) {
+
+		str+= '<ol class="selectable" id="selectable_'+i+'">'
+
+		str+='<li id="team_'+round[i].team1.id+'">'+round[i].team1.name+'</li>'
+
+		str+='<li id="team_'+round[i].team2.id+'">'+round[i].team2.name+'</li>'
+
+		str+='</ol>'
+
+	}
+
+	str+='</div>'
+
+	$("#tourney").html(str)
+
+
+
+	//Enable selectable for the teams
+
+
+
+}
+
+
+
+function checkComplete() {
+
+	//get all the games at this round
+
+	var round = rounds[currentRound]
+
+	var allGood = true
+
+	var winningTeams = []
+
+	for(var i=0;i<round.length;i++) {
+
+		//for each, if both aren't selected, allGood is false
+
+		var totalselected = $("#round_"+currentRound+" #selectable_"+i+" > li.selected").size()
+
+		if(totalselected != 1) {
+
+			allGood=false
+
+			break
+
+		} else {
+
+			//this is the id of selected team
+
+			var winningid = $("#round_"+currentRound+" #selectable_"+i+" > li.selected").attr("id")
+			$("#round_"+currentRound+" #selectable_"+i+" > li.selected").attr("id","")
+			//its in the form team_
+
+			var id = winningid.split("_")[1]
+
+			var winningname = $("#round_"+currentRound+"> #selectable_"+i+" > li.selected")[0].innerText
+			winningTeams[winningTeams.length] = {id:id,name:winningname}
+
+		}
+
+	}
+
+	
+
+	if(allGood) {
+
+		currentRound++
+
+		//first round
+
+		rounds[currentRound] = []
+
+			
+
+		//assign new games
+
+		for(i=0;i < winningTeams.length; i=i+2) {
+
+			var game = {}
+
+			game.team1 = winningTeams[i]
+
+			if(winningTeams[i+1] != null) game.team2 = winningTeams[i+1]
+
+			rounds[currentRound][rounds[currentRound].length] = game
+
+		}
+
+			
+
+		//draw the games
+
+		drawGames(currentRound)
+
+	
+
+	}
+
+}
+
+</script>
