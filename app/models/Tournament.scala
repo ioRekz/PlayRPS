@@ -4,11 +4,14 @@ import akka.actor._
 import akka.routing.RoundRobinRouter
 import akka.util.Duration
 import akka.util.duration._
+import akka.util.Timeout
+import akka.pattern.ask
+import akka.dispatch.Await
 import scala.collection._
 import play.api.Play.current
 import play.api.libs.concurrent._
 import play.api._
-
+import scala.collection._
 import scala.math._
 
 sealed trait TournamentMessage
@@ -20,57 +23,108 @@ case class GameWinner(winner : String)
 case class Winners(winners: List[String]) extends TournamentMessage
 case class RankingMatch(winners : List[String], loosers : List[String]) extends TournamentMessage
 case class TourneyStarted(players: List[String])
+case class Result(winner : (String,String), looser : (String,String))
+case class Games(games : List[Result])
+case class Rounds(rounds : List[Games])
+case class TourneyInfo(players: List[String], results: Rounds)
+case class Register(player: String)
+case class Remove(player: String)
+case class Players(players: List[String])
+case object GiveResults
+case object Test extends TournamentMessage
+
 
 object Tournament {
 
 	var players : SortedSet[String] = SortedSet.empty
 	var isStarted : Boolean = false
   var maxPlayers : Int = 16
+  var currTourney : Option[ActorRef] = None
+  var lobbies : mutable.Map[String, Set[String]] = mutable.Map.empty
+  implicit val timeout = Timeout(2 seconds)
   
-  def registerPlayer(player : String, listener: ActorRef)(errors : String => Either[String, ActorRef], success : List[String] => Either[String, ActorRef]) : Either[String, ActorRef] = {
+  // def registerPlayer(player: String, tournament: String, listener: ActorRef) {
+    
+    // var lobby : ActorRef = if(lobbies.contains(tournament))
+                  // Akka.system.actorFor("/user/"+tournament+"-lobby")
+                // else {
+                  // lobbies = lobbies + (tournament)
+                  // Akka.system.actorOf(Props(new Lobby(tournament, 16)), name=tournament+"-lobby") 
+                // }
+    // lobby ! Register(player)
+    
+  // }
+  
+  
+  def registerPlayer(player : String, tournament: String, listener: ActorRef)(errors : String => Either[String, ActorRef], success : List[String] => Either[String, ActorRef]) : Either[String, ActorRef] = {
+    
+    var players = lobbies.getOrElse(tournament, {
+        Set.empty
+      })
+    println("registering "+player)
     if(players.contains(player))
-      errors("You already registered for this tournament")
+      success(players.toList)
     else {
-      players = players + player
-      val savedList = players.toList
-      if(players.size == maxPlayers) {
-        val tourney = Akka.system.actorOf(Props(new Tournament(savedList,listener) with ChifoumiTrait))
-        println("tourneypath : "+tourney.path)
-        tourney ! Start
-        players = SortedSet.empty
-
+      if(players.size == maxPlayers)
+        errors("Tournament full")
+      else {
+        players = players + player
+        lobbies(tournament) = players
+        println(players)
+        if(players.size == maxPlayers)
+          Akka.system.actorOf(Props(new Tournament(players.toList,listener) with ChifoumiTrait), name=tournament+"-tournament") ! Start
+        success(players.toList)
       }
-      success(savedList)
     }
   }
+  
 }
 
+
+
 class Tournament(players: List[String], listener: ActorRef) extends Actor  {
-	self: Game =>
+	this: Game =>
 	require(players.length%2==0)
 	
+  implicit val timeout = Timeout(2 seconds) 
+  
 	def receive = {
+  
 		case Start =>
 			println("tourneyStart")
 			startRound(players)
       listener ! TourneyStarted(players)
+      println("tournament official name : "+self.path)
       
 			
 		case Winners(winners) =>
 			if(winners.length > 1) {
 				startRound(players.intersect(winners))
+        self ! GiveResults
 				}
 			else {
 				listener ! TourneyWinner(winners.head)
 				context.stop(self)
 			}
 		
-		case RankingMatch(winners, loosers) => {
+		case RankingMatch(winners, loosers) => 
 			val roundNbr : Int = (log(players.length/winners.length) / log(2)).toInt
 			//startRoundWithName(winners++loosers, roundNbr.toString, true)
       startRoundWithName(winners, roundNbr.toString, false)
-		}
-	}
+    
+    case GiveResults =>
+      val firstSender = sender
+      var rounds : List[Games] = Nil
+      context.children.foreach { round =>
+        (round ? GiveResults).asPromise.map {
+          case g:Games =>
+            rounds = rounds :+ g
+            println("---------- somegames "+g)
+            if(context.children.size == rounds.length)
+              firstSender ! Rounds(rounds)
+        }
+      }
+	} 
 	
 	override def preStart() {
 		Tournament.isStarted = true
@@ -98,20 +152,24 @@ class Tournament(players: List[String], listener: ActorRef) extends Actor  {
 
 class Round(players: List[String], finals : Boolean = false ,createGame: (String, String) => Actor, listener: ActorRef) extends Actor {
 	var curwinners : Set[String] = Set.empty
+	var results : mutable.ListBuffer[Result] = mutable.ListBuffer.empty
+  
+  implicit val timeout = Timeout(2 seconds) 
 	
-	def receive = {
+  def receive = {
 		case Start =>
 			println("Round Start "+players)
 			for(v <- players.sliding(2,2)) {				
 				println("starting game for "+v(0)+v(1))
-				val game = context.actorOf(Props(createGame(v(0),v(1))))
+				val game = context.actorOf(Props(createGame(v(0),v(1))), name=v(0)+"-"+v(1))
 				game ! Start
 			}
 			
-		case GameWinner(winner) =>
-			curwinners = curwinners + winner
-			listener ! RoundWinner(winner, self.path.name.toInt)
-			println(winner+" win in "+self.path.name)
+		case Result(winner,looser) =>
+			curwinners = curwinners + winner._1
+      results += Result(winner,looser)
+			//listener ! RoundWinner(winner._1, self.path.name.toInt)
+			println(winner._1+" win in "+self.path.name)
 			if(curwinners.size == players.length/2){
 				if(curwinners.size == 2 && !finals) {
 				//finals
@@ -120,5 +178,23 @@ class Round(players: List[String], finals : Boolean = false ,createGame: (String
 				} else context.parent ! Winners(curwinners.toList)
 				//context.stop(self)
 			}
+      
+      case GiveResults => 
+        // val games : mutable.ListBuffer[Result] = mutable.ListBuffer.empty
+        // var tourney = sender
+        // var count = context.children.size
+        // context.children.foreach { game =>
+          // (game ? GiveResults).map {
+            // case r: Result => 
+              // //println("[[[[[[[[[ "+r)
+              // games += r
+              // println("count "+count)
+              // println(games.length)
+              // if(games.length == count) {
+                // tourney ! Games(games.toList)
+              // }
+          // }
+        // }
+        sender ! Games(results.toList)
 	}
 }

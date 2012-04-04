@@ -1,4 +1,4 @@
-@(username: String, players : Seq[String])(implicit request: RequestHeader)
+@(username: String, tournament: String = "default")(implicit request: RequestHeader)
 
 @main("Welcome to Play 2.0") {
 		<div id="game">
@@ -8,23 +8,17 @@
       <div id="result">
         
       </div>
-			<div id="test">
-			</div>
+
 			<input class="choice" type="button" value="Paper">
 			<input class="choice" type="button" value="Cisor">
 			<input class="choice" type="button" value="Rock">
 		</div>
-    
-
-    
+        
 		<div id="bracket">
-			@bracket(username,players)
+			@bracket(username)
 		</div>
 		
-    <script>
-    
-    
-		 
+    <script>		 
 		var rounds = []
 
 		var currentRound = 0
@@ -44,7 +38,7 @@
 				rounds[currentRound] = []				
 				var players = []
 				var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket
-				var chatSocket = new WebSocket("@routes.Application.socketJoin(username).webSocketURL()")
+				var chatSocket = new WebSocket("@routes.Application.socketJoin(username, tournament).webSocketURL()")
 				var sendMessage = function(msg) {
           chatSocket.send(msg)
 				}
@@ -69,7 +63,6 @@
               oneRound.matches.push({p1 : null, p2: null})
             matchinfo.rounds.push(oneRound)
           }
-          console.log(matchinfo)
           drawBracket()
         }
 				
@@ -97,8 +90,15 @@
 					}
 					
 					if(data.kind == "infos") {
-            if(data.started)
-              drawBracket(data.members)
+            if(data.results) {
+              console.log(data.results)
+              defaultGame(data.members)
+              _.each(data.results.rounds, function(round, roundNbr) {
+                _.each(round.matches, function(match) {
+                  setWinner(match.winner, match.looser, roundNbr)
+                });
+              });
+             }
             else {
             for(i in data.members)
 							$('#players').append("<li id="+data.members[i]+">"+data.members[i]+"</li>")

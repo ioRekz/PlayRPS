@@ -17,18 +17,17 @@ object Application extends Controller {
 		if(!tourney) {
 		Tournament.kickStart()
 		tourney = true}*/
-    Ok(views.html.index("toto",Nil))
+    Ok(views.html.index("toto"))
   }
 	
-	def socketJoin(player : String) = WebSocket.async[JsValue] { request  =>
-		Chifoumi.join(player)
+	def socketJoin(player : String, tournament: String) = WebSocket.async[JsValue] { request  =>
+		Chifoumi.join(player, tournament)
 	}
 	
-	def join(player: String) = Action { implicit request =>
+	def join(player: String, tournament: String) = Action { implicit request =>
 		
 		println("join : "+Tournament.players)
-		Tournament.players = Tournament.players - player
-		Ok(views.html.index(player,Tournament.players.toList))
+		Ok(views.html.index(player,tournament))
 	}
   
 }
