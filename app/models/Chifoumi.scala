@@ -28,7 +28,7 @@ case class Tell(msg: JsObject)
 case class Registered(players: List[String])
 case class Reconnect(channel : PushEnumerator[JsValue])
 case class StopIfYouCan()
-
+case object CheckMoves
 
 object Chifoumi {
 
@@ -48,7 +48,6 @@ object Chifoumi {
       case Connected(enumerator, player) => 
       
         val iteratee = Iteratee.foreach[JsValue] { event =>
-          println("PLAYS "+username)
           player ! Play(username, (event \ "move").as[String].toLowerCase)
           
         }.mapDone { _ =>
@@ -158,10 +157,10 @@ class Chifoumi extends Actor {
   }
   
   def registerRobots(number : Int, tournament: String) = {
-    if(!context.children.toList.exists(_.path.name == "Robot1"))
+    if(!context.children.toList.exists(_.path.name == "Robot1-"+tournament))
     for(i <- 1 to number){
       val name = "Robot"+i
-      val playor = context.actorOf(Props(new RandomRobot(name)), name = name)
+      val playor = context.actorOf(Props(new RandomRobot(name)), name = name+"-"+tournament)
       context.watch(playor)
       subscribeTourney(name, tournament, playor)
     }
@@ -200,10 +199,10 @@ class Chifoumi extends Actor {
             playor ! Registered(players)
             self ! NotifyJoin(username, players)
             
-          case tn : TourneyInfo =>
-            println("results from tourney "+tn.results)
+          case tn @ TourneyInfo(players, results) =>
+            println("results from tourney "+results)
             playor ! JoinTourney(tn)
-            self ! NotifyJoin(username, tn.players)   
+            self ! NotifyJoin(username, players)   
         }
         Right(playor)
       case Left(msg) =>
@@ -218,13 +217,14 @@ class Chifoumi extends Actor {
     return error if fails, actorRef of player if he joined
   **/
   def registerPlayer(username: String, tournament: String, channel: PushEnumerator[JsValue]) : Either[String, ActorRef] = {
-   val playor = try { 
-                  context.actorOf(Props(new Player(username,channel)), name = username+"-"+tournament) 
+    val actorName = username + "-" +tournament
+    val playor = try { 
+                  context.actorOf(Props(new Player(username,channel)), name = actorName) 
                 }
                 catch {
                   case _ : InvalidActorNameException => 
-                    println("reconnect "+context.actorFor(username+"-"+tournament).path)
-                    context.actorFor(username)
+                    println("reconnect "+context.actorFor(actorName).path)
+                    context.actorFor(actorName)
 
                     
                 }
@@ -260,8 +260,9 @@ object ChifoumiGame {
 class ChifoumiGame(player1 : String, player2 : String) extends Actor {
 
 	var played : Option[(String,String)] = None
+  var moves : Map[String,String] = Map.empty
 	val rules = ChifoumiGame.rules
-  var result : Option[Result] = None
+  val timeToPlay = 5 seconds
 	//var games = Map.empty[String, ActorRef]
 	
 	override def preStart() = {
@@ -274,45 +275,75 @@ class ChifoumiGame(player1 : String, player2 : String) extends Actor {
 	
 	def receive = {
     
-		case Play(player, move) =>
-			played match {
-				case Some(play) =>
-          val (lastplayer, lastmove) = play
-					if(player != lastplayer) {
-						val stronger : String = rules((rules.indexOf(lastmove)+1)%3)
-            move match {
-              case `lastmove` => 
-                //draw, replay !
-                self ! Start
-              case `stronger` =>
-                result = Some(Result((player,move),(lastplayer, lastmove)))
-                context.parent ! Result((player, move),(lastplayer , lastmove))
-                Chifoumi.default ! WinLost(player, move ,lastplayer, lastmove, context.parent.path.name.toInt)
-              case _ => 
-                result = Some(Result((lastplayer,lastmove),(player, move)))
-                context.parent ! Result((lastplayer,lastmove),(player,move))
-                Chifoumi.default ! WinLost(lastplayer, lastmove, player, move, context.parent.path.name.toInt)
-            }
-					}
-				case None => played = Some(player,move)	
-			}
-			println(player + " plays " + move)	
+		// case Play(player, move) =>
+			// played match {
+				// case Some(play) =>
+          // val (lastplayer, lastmove) = play
+					// if(player != lastplayer) {
+						// val stronger : String = rules((rules.indexOf(lastmove)+1)%3)
+            // move match {
+              // case `lastmove` => 
+                // //draw, replay !
+                // self ! Start
+              // case `stronger` =>
+                // result = Some(Result((player,move),(lastplayer, lastmove)))
+                // context.parent ! Result((player, move),(lastplayer , lastmove))
+                // Chifoumi.default ! WinLost(player, move ,lastplayer, lastmove, context.parent.path.name.toInt)
+              // case _ => 
+                // result = Some(Result((lastplayer,lastmove),(player, move)))
+                // context.parent ! Result((lastplayer,lastmove),(player,move))
+                // Chifoumi.default ! WinLost(lastplayer, lastmove, player, move, context.parent.path.name.toInt)
+            // }
+					// }
+				// case None => played = Some(player,move)	
+			// }
+			// println(player + " plays " + move)	
 		
+    case Play(player, move) => 
+      moves = moves + (player -> move)
+      if(moves.size == 2) {
+        val (lastplayer, lastmove) = (moves - player).head
+        val stronger : String = rules((rules.indexOf(lastmove)+1)%3)
+        move match {
+          case `lastmove` => 
+            //draw, replay !
+            self ! Start
+          case `stronger` =>
+            setWinner(player,move,lastplayer,lastmove)
+          case _ => 
+            setWinner(lastplayer, lastmove, player, move)
+        }
+        
+      }
+      println(player + " plays " + move)	
+    
     case Start => 
       played = None
-      context.actorFor("/user/chifoumi/"+player1) ! NewGame(player2, self)
-      context.actorFor("/user/chifoumi/"+player2) ! NewGame(player1, self)
-      
-    case GiveResults =>
-      println("results asking for "+this)
-      result.foreach {
-        sender ! _
+      moves = Map.empty
+      val tournamentN = "-" + context.actorFor("../..").path.name.split("-")(0)
+      println("tournament namee "+tournamentN)
+      context.actorFor("/user/chifoumi/"+player1+tournamentN) ! NewGame(player2, self)
+      context.actorFor("/user/chifoumi/"+player2+tournamentN) ! NewGame(player1, self) 
+      Akka.system.scheduler.scheduleOnce(timeToPlay) {
+        self ! CheckMoves
       }
-		
-    
+      // println(new Date())
+    case CheckMoves =>
+      moves.size match {
+        case 1 =>
+          if(moves.contains(player1)) {
+            setWinner(player1, moves(player1), player2, "X")
+          } else setWinner(player2, moves(player2), player1, "X")
+        
+        case 0 => //2 elimines
+      }    
 	}
   
-  
+  def setWinner(winner: String, winmove: String, looser: String, loosemov: String) {
+    context.parent ! Result((winner,winmove),(looser,loosemov))
+    Chifoumi.default ! WinLost(winner, winmove, looser, loosemov, context.parent.path.name.toInt)
+    context.stop(self)
+  }
 	
 	override def toString() = {
 		player1 + " vs " + player2
@@ -339,10 +370,9 @@ class Player(name: String, var channel : PushEnumerator[JsValue]) extends Actor 
       notifyMe("newGame", "firstPlayer" -> Json.toJson(name), "secondPlayer" -> Json.toJson(opponent))
       currentGame = Some(game)
 
-    case Play(username, move) =>
-      println("I play "+move)
+    case play @ Play(username, move) =>
       currentGame match {
-        case Some(game) => game ! Play(name,move)
+        case Some(game) => game ! play
         case None => notifyMe("global", "message" -> Json.toJson("You are not playin any game"))
       }
       
@@ -418,14 +448,13 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
         case Some(tourney) => 
           (tourney ? GiveResults).asPromise.map {
             case r:Rounds =>
-              println("received roundssss")
               initier ! TourneyInfo(tourneyList,r)
           }
         case None =>
           players = players + name
           if(players.size == slots) {
             tourneyList = players.toList
-            myTourney = Some(context.actorOf(Props(new Tournament(tourneyList,listener) with ChifoumiTrait), name=tournament+"-tournament"))
+            myTourney = Some(context.actorOf(Props(new Tournament(tourneyList, {new ValidChoumi(_,_)} , listener)), name=tournament+"-tournament"))
             context.watch(myTourney.get)
             myTourney.get ! Start
           }
@@ -437,6 +466,81 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
         
     case Remove(name: String) =>
       players = players - name
+  }
+}
+
+trait ValidGame extends Actor {
+
+  //called when a player make a move and have to return a Result if possible
+  def playGame(player: String, move: String) : Option[Result]
+  
+  //called when the game is ready to start
+  def startGame()
+  
+  //def createGame(player1: String, player2: String) : ValidGame
+  
+  def setWinner(winner: String, winmove: String, looser: String, loosemov: String) {
+    context.parent ! Result((winner,winmove),(looser,loosemov))
+    Chifoumi.default ! WinLost(winner, winmove, looser, loosemov, context.parent.path.name.toInt)
+    context.stop(self)
+  }
+
+  
+  def receive = {
+    case Play(player, move) =>
+      playGame(player, move).foreach { result =>
+          println("result found "+result)
+          setWinner(result.winner._1, result.winner._2, result.looser._1, result.looser._2)
+      }
+      
+    case Start =>
+      startGame()
+  }
+}
+
+object ValidChoumi {
+  def apply(player1: String, player2: String) = new ValidChoumi(player1, player2)
+}
+
+class ValidChoumi(player1: String, player2: String) extends ValidGame {
+
+  var moves : Map[String,String] = Map.empty
+	val rules = ChifoumiGame.rules
+  
+  override def receive = {
+    // add your custom Msg here 
+    super.receive.orElse {
+      case _ => println("unhandled")
+    }
+  }
+
+  def playGame(player:String, move: String) : Option[Result] = {
+    println(player + " plays " + move)
+    moves = moves + (player -> move)
+      if(moves.size == 2) {
+        val (lastplayer, lastmove) = (moves - player).head
+        val stronger : String = rules((rules.indexOf(lastmove)+1)%3)
+        move match {
+          case `lastmove` => 
+            //draw, replay !
+            startGame()
+            None
+          case `stronger` =>
+            
+            Some(Result((player,move),(lastplayer,lastmove)))
+            //setWinner(player,move,lastplayer,lastmove)
+          case _ => 
+            Some(Result((lastplayer,lastmove),(player, move)))
+        }
+        
+      } else None
+  }
+  
+  def startGame() {
+      moves = Map.empty
+      val tournamentN = "-" + context.actorFor("../..").path.name.split("-")(0)
+      context.actorFor("/user/chifoumi/"+player1+tournamentN) ! NewGame(player2, self)
+      context.actorFor("/user/chifoumi/"+player2+tournamentN) ! NewGame(player1, self)
   }
 }
 

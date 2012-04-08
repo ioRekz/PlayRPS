@@ -26,7 +26,6 @@ object Application extends Controller {
 	
 	def join(player: String, tournament: String) = Action { implicit request =>
 		
-		println("join : "+Tournament.players)
 		Ok(views.html.index(player,tournament))
 	}
   

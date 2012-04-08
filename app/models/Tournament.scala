@@ -30,60 +30,12 @@ case class TourneyInfo(players: List[String], results: Rounds)
 case class Register(player: String)
 case class Remove(player: String)
 case class Players(players: List[String])
-case object GiveResults
+case object GiveResults extends TournamentMessage
 case object Test extends TournamentMessage
 
 
-object Tournament {
 
-	var players : SortedSet[String] = SortedSet.empty
-	var isStarted : Boolean = false
-  var maxPlayers : Int = 16
-  var currTourney : Option[ActorRef] = None
-  var lobbies : mutable.Map[String, Set[String]] = mutable.Map.empty
-  implicit val timeout = Timeout(2 seconds)
-  
-  // def registerPlayer(player: String, tournament: String, listener: ActorRef) {
-    
-    // var lobby : ActorRef = if(lobbies.contains(tournament))
-                  // Akka.system.actorFor("/user/"+tournament+"-lobby")
-                // else {
-                  // lobbies = lobbies + (tournament)
-                  // Akka.system.actorOf(Props(new Lobby(tournament, 16)), name=tournament+"-lobby") 
-                // }
-    // lobby ! Register(player)
-    
-  // }
-  
-  
-  def registerPlayer(player : String, tournament: String, listener: ActorRef)(errors : String => Either[String, ActorRef], success : List[String] => Either[String, ActorRef]) : Either[String, ActorRef] = {
-    
-    var players = lobbies.getOrElse(tournament, {
-        Set.empty
-      })
-    println("registering "+player)
-    if(players.contains(player))
-      success(players.toList)
-    else {
-      if(players.size == maxPlayers)
-        errors("Tournament full")
-      else {
-        players = players + player
-        lobbies(tournament) = players
-        println(players)
-        if(players.size == maxPlayers)
-          Akka.system.actorOf(Props(new Tournament(players.toList,listener) with ChifoumiTrait), name=tournament+"-tournament") ! Start
-        success(players.toList)
-      }
-    }
-  }
-  
-}
-
-
-
-class Tournament(players: List[String], listener: ActorRef) extends Actor  {
-	this: Game =>
+class Tournament(players: List[String], createGame: (String, String) => ValidGame, listener: ActorRef) extends Actor  {
 	require(players.length%2==0)
 	
   implicit val timeout = Timeout(2 seconds) 
@@ -127,16 +79,13 @@ class Tournament(players: List[String], listener: ActorRef) extends Actor  {
 	} 
 	
 	override def preStart() {
-		Tournament.isStarted = true
 	}
 	
 	override def postStop() {
-		Tournament.isStarted = false
-		Tournament.players = SortedSet.empty
 	}
 	
 	def startRoundWithName(playerslist : List[String], name : String, finals : Boolean = false) {
-		val round = context.actorOf(Props(new Round(playerslist, finals, getGame _, listener)),
+		val round = context.actorOf(Props(new Round(playerslist, finals, createGame, listener)),
 					name = name)
 		round ! Start
 	}
@@ -180,21 +129,6 @@ class Round(players: List[String], finals : Boolean = false ,createGame: (String
 			}
       
       case GiveResults => 
-        // val games : mutable.ListBuffer[Result] = mutable.ListBuffer.empty
-        // var tourney = sender
-        // var count = context.children.size
-        // context.children.foreach { game =>
-          // (game ? GiveResults).map {
-            // case r: Result => 
-              // //println("[[[[[[[[[ "+r)
-              // games += r
-              // println("count "+count)
-              // println(games.length)
-              // if(games.length == count) {
-                // tourney ! Games(games.toList)
-              // }
-          // }
-        // }
         sender ! Games(results.toList)
 	}
 }

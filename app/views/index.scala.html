@@ -1,19 +1,31 @@
 @(username: String, tournament: String = "default")(implicit request: RequestHeader)
 
 @main("Welcome to Play 2.0") {
-		<div id="game">
-			<div id="against">
-			</div>
+  <div class="game">
+		<div class="row show-grid">
       
-      <div id="result">
+        <div class="span4" id="p1">
+          P1
+        </div>
         
-      </div>
-
-			<input class="choice" type="button" value="Paper">
-			<input class="choice" type="button" value="Cisor">
-			<input class="choice" type="button" value="Rock">
+        <div class="span4" >
+          <div class="progress progress-striped">
+            <div class="bar"></div>
+          </div>
+        </div>
+        
+        <div class="span4" id="p2">
+          P2
+        </div>
+    </div>
+    <div class="row-fluid" >
+        <div class="span12">
+          <input class="btn" type="button" value="Paper">
+          <input class="btn" type="button" value="Cisor">
+          <input class="btn" type="button" value="Rock">
+        </div>
 		</div>
-        
+  </div>
 		<div id="bracket">
 			@bracket(username)
 		</div>
@@ -76,7 +88,11 @@
 				var receiveEvent = function(event) {
 					var data = JSON.parse(event.data)
 					if(data.kind == "newGame") {
-						updateAgainst(data.firstPlayer+" vs "+data.secondPlayer)
+            $("#p1").html(data.firstPlayer);
+            $("#p2").html(data.secondPlayer);
+            launchTimer();
+						//updateAgainst(data.firstPlayer+" vs "+data.secondPlayer)
+            
 					}
 					if(data.kind == "lost") {
 						updateAgainst("You lost")
@@ -204,10 +220,29 @@
 						}
 				}
         
-        
+        var launchTimer = function() {
+          var pc = 0;
+          $('.progress').addClass('active');
+          var co = this
+          var refresh = setInterval(function() { 
+            pc = pc + 20
+            $('.bar').width(pc + "%")
+            if(pc == 100) {
+              clearInterval(refresh)
+              $('.progress').removeClass('active');
+              //if(result)
+                
+            }
+          }, 1000)
+          
+        }
 				
+        var updateProgress = function() {
+          
+        }
+        
 				chatSocket.onmessage = receiveEvent
-				$('.choice').bind('click', function(event) {
+				$('.btn').bind('click', function(event) {
 					sendMessage(JSON.stringify({kind: "move", player: "@username", move: event.currentTarget.value}))
 				});
 			});
