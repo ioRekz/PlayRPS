@@ -29,6 +29,9 @@ case class Registered(players: List[String])
 case class Reconnect(channel : PushEnumerator[JsValue])
 case class StopIfYouCan()
 case object CheckMoves
+case object GetLobbyName
+case class LobbyName(lobby: String)
+case class Lobbies(lobbies : List[String])
 
 object Chifoumi {
 
@@ -40,7 +43,12 @@ object Chifoumi {
    }
 	val rules = List("paper","cisor", "rock")
 	
-	
+	def getGames : Promise[List[String]] = {
+    (default ? GetLobbyName).asPromise.map {
+      case Lobbies(lobbies) =>
+        lobbies
+    }
+  }
 	
 	def join(username:String, tournament: String):Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
     (default ? Join(username, tournament)).asPromise.map {
@@ -101,6 +109,14 @@ class Chifoumi extends Actor {
         }
       
     }
+    
+    case GetLobbyName => 
+     // var lobbies : Set[String] = Set.empty
+      var lobbies = context.children.toList.filter{_.path.name.endsWith("-lobby")}.map { lobby => 
+        lobby.path.name.split("-lobby")(0)
+      }
+      sender ! Lobbies(lobbies)
+      
 		
 		case NotifyJoin(joiner, allplayers) => {
       notifyThem( allplayers.filterNot(_ == joiner), "join", "user" -> Json.toJson(joiner))
@@ -110,6 +126,7 @@ class Chifoumi extends Actor {
       notifyAll("tourneyStart", "members" -> Json.toJson(players)) //CHEDCKKKK
 		
 		case TourneyWinner(player) => 
+      //TODO pass tournament
 			notifyThem(player :: Nil, "youwin", "user" -> Json.toJson(player))
       //kill robots
       for(p <- context.children if p.path.name.contains("Robot"))
@@ -440,9 +457,11 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
   var myTourney : Option[ActorRef] = None
   var tourneyList : List[String] = Nil
   implicit val timeout = Timeout(2 seconds)
+  import scala.util.Random
   
   def receive = {
     case Register(name: String) =>
+      println("lobby path "+self.path)
       val initier = sender
       myTourney match {
         case Some(tourney) => 
@@ -453,7 +472,7 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
         case None =>
           players = players + name
           if(players.size == slots) {
-            tourneyList = players.toList
+            tourneyList = new Random().shuffle(players.toList)
             myTourney = Some(context.actorOf(Props(new Tournament(tourneyList, {new ValidChoumi(_,_)} , listener)), name=tournament+"-tournament"))
             context.watch(myTourney.get)
             myTourney.get ! Start
@@ -466,6 +485,10 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
         
     case Remove(name: String) =>
       players = players - name
+      
+    case GetLobbyName =>
+      println("reponse from lobby "+tournament)
+      sender ! LobbyName(tournament)
   }
 }
 
@@ -508,7 +531,7 @@ class ValidChoumi(player1: String, player2: String) extends ValidGame {
 	val rules = ChifoumiGame.rules
   
   override def receive = {
-    // add your custom Msg here 
+    // add your custom Events here 
     super.receive.orElse {
       case _ => println("unhandled")
     }
@@ -541,6 +564,44 @@ class ValidChoumi(player1: String, player2: String) extends ValidGame {
       val tournamentN = "-" + context.actorFor("../..").path.name.split("-")(0)
       context.actorFor("/user/chifoumi/"+player1+tournamentN) ! NewGame(player2, self)
       context.actorFor("/user/chifoumi/"+player2+tournamentN) ! NewGame(player1, self)
+  }
+}
+
+class ValidChifoumiBo3(player1 : String, player2: String) extends ValidChoumi(player1, player2) {
+
+  var wins : List[String] = Nil
+
+  override def playGame(player: String, move:  String) = {
+    println(player + " plays " + move)
+    moves = moves + (player -> move)
+    if(moves.size == 2) {
+      val (lastplayer, lastmove) = (moves - player).head
+      val stronger : String = rules((rules.indexOf(lastmove)+1)%3)
+      move match {
+        case `lastmove` => 
+          //draw, replay !
+          startGame()
+          None
+        case `stronger` =>
+          if(wins.contains(player))
+            Some(Result((player,move),(lastplayer,lastmove)))
+          else {
+            wins = wins :+ player
+            startGame()
+            None
+          }
+        case _ => 
+          if(wins.contains(lastplayer))
+            Some(Result((lastplayer,lastmove),(player, move)))
+          else {
+            wins = wins :+ lastplayer
+            startGame()
+            None
+          }
+          
+      }
+      
+    } else None
   }
 }
 

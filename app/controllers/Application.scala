@@ -12,12 +12,10 @@ object Application extends Controller {
 	var tourney : Boolean = false
   
   def index = Action { implicit resquest =>
-		/*val l = List("jeremy","ponpon","micka","david","mike","arnaud","marek","dana")
-		l.foreach{ player => Tournament.players += player}
-		if(!tourney) {
-		Tournament.kickStart()
-		tourney = true}*/
-    Ok(views.html.index("toto"))
+    Async {
+      Chifoumi.getGames.map ( games => Ok(views.html.hello(games)) )
+    }
+    
   }
 	
 	def socketJoin(player : String, tournament: String) = WebSocket.async[JsValue] { request  =>

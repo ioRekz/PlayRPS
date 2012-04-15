@@ -5,9 +5,38 @@
   padding-bottom: 30px;
   top: 40px;
   position: fixed;
+  border-bottom: 1px solid #dedede;
 }
 
 #bracket {
-  margin-top: 120px;
+  margin-top: 135px;
   width: 100%;
+}
+
+.adjust {
+  margin-left: 25px;
+}
+
+.show-grid {
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+.show-grid [class*="span"] {
+  background-color: #eee;
+  text-align: center;
+  -webkit-border-radius: 3px;
+     -moz-border-radius: 3px;
+          border-radius: 3px;
+  min-height: 30px;
+  line-height: 30px;
+}
+.show-grid:hover [class*="span"] {
+  background: #ddd;
+}
+.show-grid .show-grid {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.show-grid .show-grid [class*="span"] {
+  background-color: #ccc;
 }

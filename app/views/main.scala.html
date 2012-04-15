@@ -1,11 +1,13 @@
 @(title: String)(content: Html)
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<!DOCTYPE html>
 
 
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us">
     <head>
         <title>@title</title>
+                <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/bootstrap.css")">
+				<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/bootstrap-responsive.css")">
         <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
 				<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/jquery.bracket-2.css")">
 				<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/jquery-ui-1.8.18.custom.css")">
@@ -16,8 +18,7 @@
           }
         </style>
     
-        <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/bootstrap.css")">
-				<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/bootstrap-responsive.css")">
+
         <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
 				
         <script src="@routes.Assets.at("javascripts/jquery-1.7.1.min.js")" type="text/javascript"></script>
