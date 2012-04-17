@@ -107,6 +107,7 @@
 						updateAgainst("You lost")
 					}
 					if(data.kind == "youwin") {
+            $('.result').show();
 						$('.result').html("Gratz, you secured 1st place in @tournament tournament !")
 					}
 					
@@ -149,7 +150,9 @@
           if(data.kind == "result") {
             if(data.winner.name == "@username" || data.looser.name == "@username") {
               $('.result').show();
-              $('.result').html("<span>"+ data.winner.move + " over " + data.looser.move+"</span>")
+              var left = data.winner.name == "@username" ? data.winner.move : data.looser.move
+              var right = data.winner.name != "@username" ? data.winner.move : data.looser.move
+              $('.result').html("<span>"+ left + " vs " + right +"</span>")
               $('.result').append("<br/>"+ (data.winner.name == "@username" ? "You win" : "You lost"))
             }
             setWinner(data.winner, data.looser, data.round) 
@@ -232,6 +235,8 @@
         
         var launchTimer = function() {
           var pc = 0;
+          if(refresh)
+          clearInterval(refresh)
           $('.progress').addClass('active');
           $('.result').hide();  
           $('.progress').show();
@@ -243,6 +248,7 @@
               clearInterval(refresh)
               $('.progress').removeClass('active');
               $('.progress').hide();
+              $('.result').show();
               $('.result').html("Too slow ... You Lost")
               //if(result)
                 

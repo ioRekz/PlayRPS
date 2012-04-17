@@ -410,7 +410,7 @@ class Player(name: String, var channel : PushEnumerator[JsValue]) extends Actor 
     case StopIfYouCan => 
       if(!currentGame.isDefined)
         context.stop(self)
-      else println("CANT kill myself")
+      else println("CANT kill myself, my game is running")
   }
   
   def parseRes(rounds: Rounds) : JsValue = {
@@ -436,11 +436,6 @@ class Player(name: String, var channel : PushEnumerator[JsValue]) extends Actor 
   }
   
   def notifyMe(kind: String, elems: (String,JsValue)*) {
-    println( Json.toJson(
-        Map(
-          "kind" -> kind
-        )
-      ).as[JsObject] ++ Json.toJson(elems.toMap).as[JsObject])
     channel.push(
       Json.toJson(
         Map(
@@ -473,7 +468,8 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
           players = players + name
           if(players.size == slots) {
             tourneyList = new Random().shuffle(players.toList)
-            myTourney = Some(context.actorOf(Props(new Tournament(tourneyList, {new ValidChoumi(_,_)} , listener)), name=tournament+"-tournament"))
+            myTourney = Some(context.actorOf(Props(new Tournament(tourneyList, 
+              {new ValidChoumi(_,_) with Timed with TwoInARow} , listener)), name=tournament+"-tournament"))
             context.watch(myTourney.get)
             myTourney.get ! Start
           }
@@ -494,6 +490,9 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
 
 trait ValidGame extends Actor {
 
+  def getPlayer1 : String = {""}
+  def getPlayer2 : String = {""}
+
   //called when a player make a move and have to return a Result if possible
   def playGame(player: String, move: String) : Option[Result]
   
@@ -505,6 +504,7 @@ trait ValidGame extends Actor {
   def setWinner(winner: String, winmove: String, looser: String, loosemov: String) {
     context.parent ! Result((winner,winmove),(looser,loosemov))
     Chifoumi.default ! WinLost(winner, winmove, looser, loosemov, context.parent.path.name.toInt)
+    //TODO let lobby be the gateway betw players/tourney println(context.actorFor("../../..").path.name)
     context.stop(self)
   }
 
@@ -536,6 +536,9 @@ class ValidChoumi(player1: String, player2: String) extends ValidGame {
       case _ => println("unhandled")
     }
   }
+  
+  override def getPlayer1 = this.player1
+  override def getPlayer2 = this.player2
 
   def playGame(player:String, move: String) : Option[Result] = {
     println(player + " plays " + move)
@@ -564,6 +567,90 @@ class ValidChoumi(player1: String, player2: String) extends ValidGame {
       val tournamentN = "-" + context.actorFor("../..").path.name.split("-")(0)
       context.actorFor("/user/chifoumi/"+player1+tournamentN) ! NewGame(player2, self)
       context.actorFor("/user/chifoumi/"+player2+tournamentN) ! NewGame(player1, self)
+  }
+}
+
+abstract class GameEngine {
+  def play(player:String, move:String) : Option[Result]
+  def start() 
+}
+
+trait TwoInARow extends ValidGame {
+
+  var lastwinner : Option[String] = None
+
+  abstract override def startGame() = super.startGame()
+  abstract override def playGame(player:String, move:String) : Option[Result] = {
+    val resOp = super.playGame(player,move)
+    resOp match { 
+      case Some(res) => 
+        lastwinner.foreach { lastwin =>
+          if(lastwin == res.winner._1) {
+            lastwinner = None
+            return Some(res)
+          }
+        }
+        lastwinner = Some(res.winner._1)
+        startGame()
+        None
+      case None => None
+    }
+  }
+}
+
+trait Timed extends ValidGame {
+  val timeToPlay = 10 seconds
+  var played : Map[String, String] = Map.empty
+  
+  abstract override def startGame() = {
+    Akka.system.scheduler.scheduleOnce(timeToPlay) {
+      checkMoves()
+    }
+    super.startGame()
+  }
+  
+  abstract override def playGame(player: String, move: String) = {
+    played = played + (player -> move)
+    super.playGame(player, move)
+  }
+  
+  def checkMoves() {
+    val player1 = getPlayer1
+    val player2 = getPlayer2
+    played.size match {
+      case 1 =>
+        if(played.contains(player1)) {
+          setWinner(player1, played(player1), player2, "X")
+        } else setWinner(player2, played(player2), player1, "X")
+      
+      case _ => //2 elimines
+    }
+  }
+}
+
+trait BestOf3 extends ValidGame {
+  
+  var wins : List[String] = Nil
+  
+  abstract override def startGame() = super.startGame()
+  
+  abstract override def playGame(player:String, move:String) = {
+    val resOp = super.playGame(player,move)
+    resOp match {
+      case Some(res) => 
+        if(wins.contains(res.winner._1)) {
+          wins = Nil
+          Some(res)
+          
+        }
+        else {
+          wins = wins :+ res.winner._1
+          startGame()
+          None
+        }
+        
+      case None => None
+    }
   }
 }
 

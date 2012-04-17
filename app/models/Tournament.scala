@@ -71,7 +71,6 @@ class Tournament(players: List[String], createGame: (String, String) => ValidGam
         (round ? GiveResults).asPromise.map {
           case g:Games =>
             rounds = rounds :+ g
-            println("---------- somegames "+g)
             if(context.children.size == rounds.length)
               firstSender ! Rounds(rounds)
         }

@@ -1,0 +1,7 @@
+todo
+
+envoyer les résultats intermédiaire. Pour l'instant le client a une notif que
+pour un gagnant
+
+Lobby manage conversation between tournament/game and players so it's more
+than global Chifoumi.
