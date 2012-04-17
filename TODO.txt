@@ -1,7 +1,7 @@
 todo
 
 envoyer les résultats intermédiaire. Pour l'instant le client a une notif que
-pour un gagnant
+pour un gagnant mais pas de draw ou de vainqueur dans un bo3
 
-Lobby manage conversation between tournament/game and players so it's more
+Lobby manage conversation between tournament/game and players so it's more scalable
 than global Chifoumi.
