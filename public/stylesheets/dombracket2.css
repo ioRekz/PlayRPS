@@ -1,0 +1,3 @@
+.ui-helper-clearfix:after{content:".";display:block;height:0;clear:both;visibility:hidden}
+
+.rounded-5{-khtml-border-radius:5px;-moz-border-radius:5px;-webkit-border-radius:5px;border-radius:5px}
