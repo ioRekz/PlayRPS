@@ -6,15 +6,15 @@
   top: 40px;
   position: fixed;
   border-bottom: 1px solid #dedede;
+  z-index: 1;
 }
 
 #bracket {
-  margin-top: 135px;
+  margin-top: 80px;
   width: 100%;
-}
-
-.adjust {
-  margin-left: 25px;
+  z-index: -1;
+  font-family: "Verdana";
+  font-weight: bold;
 }
 
 .show-grid {

@@ -469,7 +469,10 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
           if(players.size == slots) {
             tourneyList = new Random().shuffle(players.toList)
             myTourney = Some(context.actorOf(Props(new Tournament(tourneyList, 
-              {new ValidChoumi(_,_) with Timed with TwoInARow} , listener)), name=tournament+"-tournament"))
+              { new ValidChoumi(_,_) with TwoInARow
+               
+              }, 
+              listener)), name=tournament+"-tournament"))
             context.watch(myTourney.get)
             myTourney.get ! Start
           }
@@ -570,11 +573,19 @@ class ValidChoumi(player1: String, player2: String) extends ValidGame {
   }
 }
 
-abstract class GameEngine {
-  def play(player:String, move:String) : Option[Result]
-  def start() 
+trait DynamicMixinCompanion[TT] {                                                                    
+  implicit def baseObject[OT](o: Mixin[OT]): OT = o.obj                                              
+
+  def ::[OT](o: OT): Mixin[OT] with TT                                                               
+  class Mixin[OT] protected[DynamicMixinCompanion](val obj: OT)                                      
 }
 
+// object TwoInARow {
+  // implicit def innerObj(o:MixTest) = o.obj
+
+  // final class MixTest private[TwoInARow](val obj:ValidChoumi) extends TwoInARow
+  // def ::(o:ValidChoumi) = new MixTest(o)
+// }
 trait TwoInARow extends ValidGame {
 
   var lastwinner : Option[String] = None
@@ -598,6 +609,9 @@ trait TwoInARow extends ValidGame {
   }
 }
 
+// object Timed extends DynamicMixinCompanion[Timed] {
+  // def ::[T](o: T) = new Mixin(o) with Timed
+// }
 trait Timed extends ValidGame {
   val timeToPlay = 10 seconds
   var played : Map[String, String] = Map.empty
@@ -628,6 +642,9 @@ trait Timed extends ValidGame {
   }
 }
 
+// object BestOf3 extends DynamicMixinCompanion[BestOf3] {
+  // def ::[T](o: T) = new Mixin(o) with BestOf3
+// }
 trait BestOf3 extends ValidGame {
   
   var wins : List[String] = Nil
@@ -691,4 +708,5 @@ class ValidChifoumiBo3(player1 : String, player2: String) extends ValidChoumi(pl
     } else None
   }
 }
+    
 
