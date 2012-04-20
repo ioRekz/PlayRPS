@@ -118,7 +118,8 @@
 					if(data.kind == "infos") {
             if(data.results) {
               console.log(data.results)
-              defaultGame(data.members)
+              createDomBracket(data.members)
+              // defaultGame(data.members)
               _.each(data.results.rounds, function(round, roundNbr) {
                 _.each(round.matches, function(match) {
                   setWinner(match.winner, match.looser, roundNbr)
