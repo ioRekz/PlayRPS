@@ -148,7 +148,7 @@ trait ValidGame extends Actor {
   
   def setWinner(winner: String, winmove: String, looser: String, loosemov: String) {
     context.parent ! Result((winner,winmove),(looser,loosemov))
-    
+    Chifoumi.default ! WinLost(winner,winmove, looser, loosemov, context.parent.path.name.toInt)
     //TODO let lobby be the gateway betw players/tourney println(context.actorFor("../../..").path.name)
     context.stop(self)
   }
