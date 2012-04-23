@@ -1,0 +1,92 @@
+package models
+
+import akka.actor._
+import play.api.libs.iteratee._
+import play.api.libs.json._
+
+class Player(name: String, var channel : PushEnumerator[JsValue]) extends Actor {
+
+  var currentGame : Option[ActorRef] = None
+   
+  
+  override def preStart() = {
+  }
+    
+  def receive = {
+    case JoinTourney(infos) =>
+      notifyMe("infos", "user" -> Json.toJson(name), "members" -> Json.toJson(infos.players), "started" -> Json.toJson(currentGame.isDefined),
+        "results" -> parseRes(infos.results))
+      
+    case Registered(players) =>
+      notifyMe("infos", "user" -> Json.toJson(name), "members" -> Json.toJson(players), "started" -> Json.toJson(currentGame.isDefined) )
+     
+    case NewGame(opponent, game) => 
+      notifyMe("newGame", "firstPlayer" -> Json.toJson(name), "secondPlayer" -> Json.toJson(opponent))
+      currentGame = Some(game)
+
+    case play @ Play(username, move) =>
+      currentGame match {
+        case Some(game) => game ! play
+        case None => notifyMe("global", "message" -> Json.toJson("You are not playin any game"))
+      }
+      
+    case Reconnect(channel) => 
+      this.channel = channel
+      currentGame.foreach { game => 
+        game.path.name.split("-").foreach { p =>
+          if(p != name)
+            self ! NewGame(p,game)
+        }
+      }
+    // case Register(tournament: String) =>
+      // Tournament.register(name, tournament, self)    
+    
+    case Tell(msg) =>
+      channel.push(msg)
+      
+    case StopIfYouCan => 
+      if(!currentGame.isDefined)
+        context.stop(self)
+      else println("CANT kill myself, my game is running")
+  }
+  
+  def parseRes(rounds: Rounds) : JsValue = {
+    val resjson = rounds.rounds.map { games =>
+      val allgames = games.games.map { result =>
+        Json.toJson(
+          Map(
+            "winner" -> Map(
+              "name" -> result.winner._1,
+              "move" -> result.winner._2
+            ),
+            "looser" -> Map (
+              "name" -> result.looser._1,
+              "move" -> result.looser._2
+            )
+          )
+        )
+      }
+      Json.toJson(Map("matches" -> allgames))
+    }
+    val results = Json.toJson(Map("rounds" -> resjson))
+    results
+  }
+  
+  def notifyMe(kind: String, elems: (String,JsValue)*) {
+    channel.push(
+      Json.toJson(
+        Map(
+          "kind" -> kind
+        )
+      ).as[JsObject] ++ Json.toJson(elems.toMap).as[JsObject]
+    )
+  }
+
+}
+
+class RandomRobot(name: String) extends Actor {
+	def receive = {
+		case NewGame(opponent, game) => 
+			sender ! Play(name, new scala.util.Random().shuffle(ValidChoumi.rules).head) //ChifoumiGame.rules.shuffle.head)
+	}
+}

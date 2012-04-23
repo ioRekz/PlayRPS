@@ -131,3 +131,36 @@ class Round(players: List[String], finals : Boolean = false ,createGame: (String
         sender ! Games(results.toList)
 	}
 }
+
+trait ValidGame extends Actor {
+
+  def getPlayer1 : String = {""}
+  def getPlayer2 : String = {""}
+
+  //called when a player make a move and have to return a Result if possible
+  def playGame(player: String, move: String) : Option[Result]
+  
+  //called when the game is ready to start
+  def startGame()
+  
+  //def createGame(player1: String, player2: String) : ValidGame
+  
+  
+  def setWinner(winner: String, winmove: String, looser: String, loosemov: String) {
+    context.parent ! Result((winner,winmove),(looser,loosemov))
+    
+    //TODO let lobby be the gateway betw players/tourney println(context.actorFor("../../..").path.name)
+    context.stop(self)
+  }
+    
+  def receive = {
+    case Play(player, move) =>
+      playGame(player, move).foreach { result =>
+          println("result found "+result)
+          setWinner(result.winner._1, result.winner._2, result.looser._1, result.looser._2)
+      }
+      
+    case Start =>
+      startGame()
+  }
+}
