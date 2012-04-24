@@ -7,14 +7,22 @@
   position: fixed;
   border-bottom: 1px solid #dedede;
   z-index: 1;
+  height: 100px;
+}
+
+.player {
+  font-family: "Verdana";
+}
+
+.status {
+  margin-bottom: 15px;
 }
 
 #bracket {
-  margin-top: 75px;
+  margin-top: 110px;
   width: 100%;
   z-index: -1;
   font-family: "Verdana";
-  font-weight: bold;
 }
 
 .show-grid {

@@ -161,6 +161,9 @@ trait ValidGame extends Actor {
       }
       
     case Start =>
-      startGame()
+      Akka.system.scheduler.scheduleOnce(2 seconds) {
+        startGame()
+      }
+      
   }
 }

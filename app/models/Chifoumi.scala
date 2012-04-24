@@ -118,7 +118,7 @@ class Chifoumi extends Actor {
 		
 		case TourneyWinner(player) => 
       //TODO pass tournament
-			notifyThem(player :: Nil, "youwin", "user" -> Json.toJson(player))
+			notifyThem(player+"-chifoumi" :: Nil, "youwin", "user" -> Json.toJson(player))
       //kill robots
       for(p <- context.children if p.path.name.contains("Robot"))
         context.stop(p)
@@ -251,7 +251,7 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
           if(players.size == slots) {
             tourneyList = new Random().shuffle(players.toList)
             myTourney = Some(context.actorOf(Props(new Tournament(tourneyList, 
-              { new ValidChoumi(_,_) with TwoInARow
+              { new ValidChoumi(_,_)
                
               }, 
               listener)), name=tournament+"-tournament"))
