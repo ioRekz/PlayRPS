@@ -14,10 +14,11 @@
 }
 
 .gameback {
-	margin-top: 120px;
-	height: 100%;
-	position: fixed;
+	top: 120px;
+	height: 65%;
+	position: absolute;
 	z-index: 0;
+  margin-bottom: 20px;
 }
 
 #bracket {
