@@ -1,5 +1,46 @@
 package models
 
+import akka.actor._
+import play.api.Play.current
+import play.api.libs.concurrent._
+import akka.util.duration._
+
+trait ValidGame extends Actor {
+
+  def getPlayer1 : String = {""}
+  def getPlayer2 : String = {""}
+
+  //called when a player make a move and have to return a Result if possible
+  def playGame(player: String, move: String) : Option[Result]
+  
+  //called when the game is ready to start
+  def startGame()
+  
+  //def createGame(player1: String, player2: String) : ValidGame
+  
+  
+  def setWinner(winner: String, winmove: String, looser: String, loosemov: String) {
+    context.parent ! Result((winner,winmove),(looser,loosemov))
+    Chifoumi.default ! WinLost(winner,winmove, looser, loosemov, context.parent.path.name.toInt)
+    //TODO let lobby be the gateway betw players/tourney println(context.actorFor("../../..").path.name)
+    context.stop(self)
+  }
+    
+  def receive = {
+    case Play(player, move) =>
+      playGame(player, move).foreach { result =>
+          println("result found "+result)
+          setWinner(result.winner._1, result.winner._2, result.looser._1, result.looser._2)
+      }
+      
+    case Start =>
+      Akka.system.scheduler.scheduleOnce(2 seconds) {
+        startGame()
+      }
+      
+  }
+}
+
 object ValidChoumi {
   def apply(player1: String, player2: String) = new ValidChoumi(player1, player2)
   val rules = List("paper","cisor", "rock")
@@ -34,7 +75,7 @@ class ValidChoumi(player1: String, player2: String) extends ValidGame {
           case `lastmove` => 
             //draw, replay !
             startGame()
-            lobby ! DrawRes(player, lastplayer, move)
+            lobby ! WinLost(player, move,lastplayer, lastmove, context.parent.path.name.toInt)
             None
           case `stronger` =>
             val res = Result((player,move),(lastplayer,lastmove))

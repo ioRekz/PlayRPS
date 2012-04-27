@@ -14,14 +14,23 @@ $(function() {
 			});
 			
 			socketz.on("result", function(data) {
-				if(data.winner.name == currentUser || data.looser.name == currentUser) {
-					$('.result').show();
-					var left = data.winner.name == currentUser ? data.winner.move : data.looser.move
-					var right = data.winner.name != currentUser ? data.winner.move : data.looser.move
-					$('.result').html("<span>"+ left + " vs " + right +"</span>")
-					$('.result').append("<br/>"+ (data.winner.name == currentUser ? "You win" : "You lost"))
-				}
-				setWinner(data.winner, data.looser, data.round)
+        console.log(data.draw)
+        if(!data.draw) {
+          if(data.winner.name == currentUser || data.looser.name == currentUser) {
+            $('.result').show();
+            var left = data.winner.name == currentUser ? data.winner.move : data.looser.move
+            var right = data.winner.name != currentUser ? data.winner.move : data.looser.move
+            $('.result').html("<span>"+ left + " vs " + right +"</span>")
+            $('.result').append("<br/>"+ (data.winner.name == currentUser ? "You win" : "You lost"))
+          }
+          setWinner(data.winner, data.looser, data.round)
+        } else {
+          if(data.winner.name == currentUser || data.looser.name == currentUser) {
+            $('.result').show();
+            $('.result').html("<span>"+ data.winner.move + " vs " + data.looser.move +"</span>");
+            $('.result').append("<br/>"+"Draw");
+          }
+        }
 			});
 
 			socketz.on("lost", function(data) {

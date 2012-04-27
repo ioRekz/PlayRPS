@@ -9,6 +9,10 @@
   height: 100px;
 }
 
+.matchinfo {
+  margin-bottom: 15px;
+}
+
 .player {
   font-family: "Verdana";
 }

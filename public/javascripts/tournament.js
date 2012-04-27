@@ -61,11 +61,9 @@ var setWinner = function(winner, looser, round) {
 	
 	var nextGameId = Math.floor((gameid)/2)
 	var offsetPlayer = (gameid)%2 == 0 ? "one" : "two"
-	console.log(winner.name)
-	console.log(nextGameId)
+
 	var nextGame = $("#round-"+(round+1)+" .match[data-id='"+nextGameId+"']")
-	console.log(nextGame)
-	console.log(offsetPlayer)
+
 	var nextOpo = nextGame.find('.opponent.'+offsetPlayer);
 	nextOpo.append($("#name-template").tmpl({name: winner.name}))
 	nextOpo.attr('data-id', winner.name)

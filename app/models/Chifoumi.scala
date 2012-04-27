@@ -124,7 +124,8 @@ class Chifoumi extends Actor {
         context.stop(p)
 		
     case WinLost(winner, winmove, looser, loosemove, round) => 
-			notifyAll("result", 
+			notifyAll("result",
+        "draw" -> Json.toJson(winmove == loosemove),
         "winner" -> Json.toJson(Map("name" -> winner, "move" -> winmove)),
         "looser" -> Json.toJson(Map("name" -> looser, "move" -> loosemove)),
         "round" -> Json.toJson(round)
@@ -263,7 +264,11 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
 
     case Terminated(tn) =>
       context.stop(self)
+    
+    case wn: WinLost => 
+      Chifoumi.default ! wn
         
+    
     case Remove(name: String) =>
       players = players - name
       
