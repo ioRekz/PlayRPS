@@ -52,7 +52,10 @@ trait Timed extends ValidGame {
           setWinner(player1, played(player1), player2, "X")
         } else setWinner(player2, played(player2), player1, "X")
       
-      case _ => //2 elimines
+      case _ => 
+        val r = new Random().nextInt(1)
+        if(r == 1) setWinner(player1, "X", player2, "X") 
+        else setWinner(player2, "X", player1, "X")
     }
   }
 }
