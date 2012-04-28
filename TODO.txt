@@ -5,3 +5,5 @@ pour un gagnant mais pas de draw ou de vainqueur dans un bo3
 
 Lobby manage conversation between tournament/game and players so it's more scalable
 than global Chifoumi.
+
+TESTER 2 trop lents pr le mode timed
