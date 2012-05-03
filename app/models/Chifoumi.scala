@@ -102,16 +102,17 @@ class Chifoumi extends Actor {
       // } else {
       val initier = sender
       val lobby = getLobby(tournament)
+      // for(i <- 1 to 2){
+        // val name = "Robot"+i
+        // lobby ! RegisterRobot(name)
+      // }
       (lobby ? Register(username)).asPromise.map {
         case cC: CannotConnect =>
           initier ! cC
         case Connected(channel, player) =>
           initier ! ConnectedWithLobby(channel,player,lobby)
       }
-      for(i <- 1 to 14){
-        val name = "Robot"+i
-        lobby ! RegisterRobot(name)
-      }
+      
       
         // registerPlayer(username, tournament, channel) match {
           // case Left(error) => sender ! CannotConnect(error)
@@ -165,7 +166,7 @@ class Chifoumi extends Actor {
   
   def getLobby(name: String) : ActorRef = {
     try {
-      context.actorOf(Props(new Lobby(name, 16, self)),name=name)
+      context.actorOf(Props(new Lobby(name, 2, self)),name=name)
     } catch {
       case _ : InvalidActorNameException => 
         context.actorFor(name)
@@ -322,8 +323,10 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
     case Terminated(tn) =>
       myTourney match {
         case Some(tourney) =>
-          println("tourney is over")
-          context.stop(self)
+          if(tourney == tn) {
+            println("tourney is over")
+            context.stop(self)
+          } else println("dead "+tn.path.name)
         case None =>
           println("dead "+tn.path.name)
           players = players - tn.path.name
@@ -338,7 +341,6 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
         )
         
     case PersonalResult(winner, winmove, looser, loosemove, round) =>
-      println("persoResult "+winner)
       notifyThem(winner :: looser :: Nil, "persoresult",
         "draw" -> Json.toJson(winmove == loosemove),
         "winner" -> Json.toJson(Map("name" -> winner, "move" -> winmove)),
@@ -380,7 +382,7 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
         if(players.size == slots) {
           tourneyList = new Random().shuffle(players.toList)
           myTourney = Some(context.actorOf(Props(new Tournament(tourneyList, 
-            { new ValidChoumi(_,_) with TwoInARow
+            { new ValidChoumi(_,_) with Timed
              
             }, 
             self)), name=tournament+"-tournament"))

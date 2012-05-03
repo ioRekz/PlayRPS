@@ -23,9 +23,9 @@ trait ValidGame extends Actor {
   
   def setWinner(winner: String, winmove: String, looser: String, loosemov: String) {
     context.parent ! Result((winner,winmove),(looser,loosemov))
-    
+    //println("stoping game "+winner+" vs "+looser)
     //TODO let lobby be the gateway betw players/tourney println(context.actorFor("../../..").path.name)
-    context.stop(self)
+    //context.stop(self)
   }
     
   def receive = {
@@ -62,14 +62,6 @@ class ValidChoumi(player1: String, player2: String) extends ValidGame with Infos
 
   var moves : Map[String,String] = Map.empty
 	val rules = ValidChoumi.rules
-  
-  // lazy val lobby = {
-    // context.actorFor("../../..")
-  // }
-  
-  // lazy val getRound : Int = {
-    // context.parent.path.name.toInt
-  // }
   
   override def receive = {
     // add your custom Events here 
@@ -114,10 +106,8 @@ class ValidChoumi(player1: String, player2: String) extends ValidGame with Infos
   }
   
   def startGame() {
-      
-        moves = Map.empty
-        context.actorFor("../../../"+player1) ! NewGame(player2, self)
-        context.actorFor("../../../"+player2) ! NewGame(player1, self)
-         
+    moves = Map.empty
+    context.actorFor("../../../"+player1) ! NewGame(player2, self)
+    context.actorFor("../../../"+player2) ! NewGame(player1, self)
   }
 }
