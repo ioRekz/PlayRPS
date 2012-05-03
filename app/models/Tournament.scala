@@ -26,9 +26,7 @@ case class TourneyStarted(players: List[String])
 case class Result(winner : (String,String), looser : (String,String))
 case class Games(games : List[Result])
 case class Rounds(rounds : List[Games])
-case class TourneyInfo(players: List[String], results: Rounds)
-case class Register(player: String)
-case class Remove(player: String)
+
 case class Players(players: List[String])
 case object GiveResults extends TournamentMessage
 case object Test extends TournamentMessage

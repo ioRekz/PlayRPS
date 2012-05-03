@@ -9,6 +9,8 @@ trait ValidGame extends Actor {
 
   def getPlayer1 : String = {""}
   def getPlayer2 : String = {""}
+  
+  
 
   //called when a player make a move and have to return a Result if possible
   def playGame(player: String, move: String) : Option[Result]
@@ -21,7 +23,7 @@ trait ValidGame extends Actor {
   
   def setWinner(winner: String, winmove: String, looser: String, loosemov: String) {
     context.parent ! Result((winner,winmove),(looser,loosemov))
-    Chifoumi.default ! WinLost(winner,winmove, looser, loosemov, context.parent.path.name.toInt)
+    
     //TODO let lobby be the gateway betw players/tourney println(context.actorFor("../../..").path.name)
     context.stop(self)
   }
@@ -29,6 +31,7 @@ trait ValidGame extends Actor {
   def receive = {
     case Play(player, move) =>
       playGame(player, move).foreach { result =>
+
           println("result found "+result)
           setWinner(result.winner._1, result.winner._2, result.looser._1, result.looser._2)
       }
@@ -37,7 +40,16 @@ trait ValidGame extends Actor {
       Akka.system.scheduler.scheduleOnce(2 seconds) {
         startGame()
       }
-      
+  }
+}
+
+trait Infos extends Actor {
+  lazy val getRound : Int = {
+    context.parent.path.name.toInt
+  }
+  
+  lazy val lobby = {
+    context.actorFor("../../..")
   }
 }
 
@@ -46,14 +58,18 @@ object ValidChoumi {
   val rules = List("paper","cisor", "rock")
 }
 
-class ValidChoumi(player1: String, player2: String) extends ValidGame {
+class ValidChoumi(player1: String, player2: String) extends ValidGame with Infos {
 
   var moves : Map[String,String] = Map.empty
 	val rules = ValidChoumi.rules
   
-  lazy val lobby = {
-    context.actorFor("../../..")
-  }
+  // lazy val lobby = {
+    // context.actorFor("../../..")
+  // }
+  
+  // lazy val getRound : Int = {
+    // context.parent.path.name.toInt
+  // }
   
   override def receive = {
     // add your custom Events here 
@@ -64,6 +80,12 @@ class ValidChoumi(player1: String, player2: String) extends ValidGame {
   
   override def getPlayer1 = this.player1
   override def getPlayer2 = this.player2
+  
+  override def setWinner(winner: String, winmove: String, looser: String, loosemov: String) {
+    super.setWinner(winner,winmove,looser,loosemov)
+    lobby ! WinLost(winner,winmove,looser,loosemov, getRound)
+    lobby ! PersonalResult(winner,winmove,looser,loosemov, getRound)
+  }
 
   def playGame(player:String, move: String) : Option[Result] = {
     println(player + " plays " + move)
@@ -74,8 +96,8 @@ class ValidChoumi(player1: String, player2: String) extends ValidGame {
         move match {
           case `lastmove` => 
             //draw, replay !
-            startGame()
-            lobby ! WinLost(player, move,lastplayer, lastmove, context.parent.path.name.toInt)
+            lobby ! PersonalResult(player, move,lastplayer, lastmove, context.parent.path.name.toInt)
+            self ! Start
             None
           case `stronger` =>
             val res = Result((player,move),(lastplayer,lastmove))
@@ -92,9 +114,10 @@ class ValidChoumi(player1: String, player2: String) extends ValidGame {
   }
   
   def startGame() {
-      moves = Map.empty
-      val tournamentN = "-" + context.actorFor("../..").path.name.split("-")(0)
-      context.actorFor("/user/chifoumi/"+player1+tournamentN) ! NewGame(player2, self)
-      context.actorFor("/user/chifoumi/"+player2+tournamentN) ! NewGame(player1, self)
+      
+        moves = Map.empty
+        context.actorFor("../../../"+player1) ! NewGame(player2, self)
+        context.actorFor("../../../"+player2) ! NewGame(player1, self)
+         
   }
 }

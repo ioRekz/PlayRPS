@@ -7,22 +7,25 @@ import play.api.libs.json._
 class Player(name: String, var channel : PushEnumerator[JsValue]) extends Actor {
 
   var currentGame : Option[ActorRef] = None
-   
+  var currentOpo : Option[String] = None
   
   override def preStart() = {
   }
     
   def receive = {
     case JoinTourney(infos) =>
+      println("infoooooooooooos")
       notifyMe("infos", "user" -> Json.toJson(name), "members" -> Json.toJson(infos.players), "started" -> Json.toJson(currentGame.isDefined),
-        "results" -> parseRes(infos.results))
+        "results" -> parseRes(infos.results), "currentGame" -> Json.toJson(currentOpo.getOrElse("none")))
       
     case Registered(players) =>
+      println(players)
       notifyMe("infos", "user" -> Json.toJson(name), "members" -> Json.toJson(players), "started" -> Json.toJson(currentGame.isDefined) )
      
     case NewGame(opponent, game) => 
       notifyMe("newGame", "firstPlayer" -> Json.toJson(name), "secondPlayer" -> Json.toJson(opponent))
       currentGame = Some(game)
+      currentOpo = Some(opponent)
 
     case play @ Play(username, move) =>
       currentGame match {
@@ -45,6 +48,7 @@ class Player(name: String, var channel : PushEnumerator[JsValue]) extends Actor 
       channel.push(msg)
       
     case StopIfYouCan => 
+      println("stopifucan : "+name+" "+currentGame.isDefined)
       if(!currentGame.isDefined)
         context.stop(self)
       else println("CANT kill myself, my game is running")

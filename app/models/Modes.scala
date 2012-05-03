@@ -3,11 +3,11 @@ package models
 import akka.util.duration._
 import play.api.libs.concurrent._
 import play.api.Play.current
+import scala.util.Random
 
-trait TwoInARow extends ValidGame {
-
+trait TwoInARow extends ValidGame with Infos {
   var lastwinner : Option[String] = None
-
+  
   abstract override def startGame() = super.startGame()
   abstract override def playGame(player:String, move:String) : Option[Result] = {
     val resOp = super.playGame(player,move)
@@ -16,11 +16,13 @@ trait TwoInARow extends ValidGame {
         lastwinner.foreach { lastwin =>
           if(lastwin == res.winner._1) {
             lastwinner = None
+            
             return Some(res)
-          }
+          } 
         }
+        lobby ! PersonalResult(res.winner._1, res.winner._2, res.looser._1, res.looser._2, getRound)
         lastwinner = Some(res.winner._1)
-        startGame()
+        self ! Start
         None
       case None => None
     }

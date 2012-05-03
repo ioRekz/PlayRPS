@@ -9,28 +9,31 @@ $(function() {
 			});
 			
 			socketz.on("tourneyStart", function(data) {
+      console.log("tourneystart");
 				createDomBracket(data.members)
 				$('#players').hide()
 			});
+      
+      socketz.on("persoresult", function(data) {
+        $('.result').show();
+        if(data.draw) {
+          $('.result').html("<span>"+ data.winner.move + " vs " + data.looser.move +"</span>");
+          $('.result').append("<br/>"+"Draw");
+          }
+        else {
+          var left = data.winner.name == currentUser ? data.winner.move : data.looser.move
+          var right = data.winner.name != currentUser ? data.winner.move : data.looser.move
+          $('.result').html("<span>"+ left + " vs " + right +"</span>")
+          $('.result').append("<br/>"+ (data.winner.name == currentUser ? "You win" : "You lost"))
+        }
+      });
 			
 			socketz.on("result", function(data) {
-        console.log(data.draw)
-        if(!data.draw) {
-          if(data.winner.name == currentUser || data.looser.name == currentUser) {
-            $('.result').show();
-            var left = data.winner.name == currentUser ? data.winner.move : data.looser.move
-            var right = data.winner.name != currentUser ? data.winner.move : data.looser.move
-            $('.result').html("<span>"+ left + " vs " + right +"</span>")
-            $('.result').append("<br/>"+ (data.winner.name == currentUser ? "You win" : "You lost"))
-          }
-          setWinner(data.winner, data.looser, data.round)
-        } else {
-          if(data.winner.name == currentUser || data.looser.name == currentUser) {
-            $('.result').show();
-            $('.result').html("<span>"+ data.winner.move + " vs " + data.looser.move +"</span>");
-            $('.result').append("<br/>"+"Draw");
-          }
-        }
+
+        
+        setWinner(data.winner, data.looser, data.round)
+        
+        
 			});
 
 			socketz.on("lost", function(data) {
@@ -47,8 +50,11 @@ $(function() {
 			});
 			
 			socketz.on("infos", function(data) {
-				if(data.results) {
+				if(data.started) {
 					console.log(data.results)
+          $("#p1").html(currentUser);
+          $("#p2").html(data.currentGame).hide().fadeIn("slow");
+          $(".result").html("VERSUSS");
 					createDomBracket(data.members)
 					// defaultGame(data.members)
 					_.each(data.results.rounds, function(round, roundNbr) {
