@@ -36,6 +36,8 @@ case class PersonalResult(winner: String, move : String, looser: String, moveL :
 
 object Chifoumi {
 
+  val nbPlayer = 16
+
 	implicit val timeout = Timeout(1 second)
 	lazy val default = {
     Akka.system.actorOf(Props[Chifoumi],name="chifoumi")
@@ -102,7 +104,7 @@ class Chifoumi extends Actor {
       // } else {
       val initier = sender
       val lobby = getLobby(tournament)
-      for(i <- 1 to 15){
+      for(i <- 1 to Chifoumi.nbPlayer-1){
         val name = "Robot"+i
         lobby ! RegisterRobot(name)
       }
@@ -166,7 +168,7 @@ class Chifoumi extends Actor {
   
   def getLobby(name: String) : ActorRef = {
     try {
-      context.actorOf(Props(new Lobby(name, 16, self)),name=name)
+      context.actorOf(Props(new Lobby(name, Chifoumi.nbPlayer, self)),name=name)
     } catch {
       case _ : InvalidActorNameException => 
         context.actorFor(name)
@@ -354,6 +356,9 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
     
     case TourneyStarted(players) =>
       notifyAll("tourneyStart", "members" -> Json.toJson(players))
+      
+    case TourneyWinner(player) =>
+      notifyThem(player :: Nil, "youwin", "player" -> Json.toJson(player))
     
     case Quit(username) =>
       context.actorFor(username) ! StopIfYouCan

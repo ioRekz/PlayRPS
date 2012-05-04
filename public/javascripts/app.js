@@ -42,7 +42,7 @@ $(function() {
 
 			socketz.on("youwin", function(data) {
 				$('.result').show();
-				$('.result').html("Gratz, you secured 1st place in @tournament tournament !")
+				$('.result').html("Gratz, you secured 1st place in"+ currentTournament + " tournament !")
 			});
 
 			socketz.on("join", function(data) {
