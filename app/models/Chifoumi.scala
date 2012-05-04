@@ -102,10 +102,10 @@ class Chifoumi extends Actor {
       // } else {
       val initier = sender
       val lobby = getLobby(tournament)
-      // for(i <- 1 to 2){
-        // val name = "Robot"+i
-        // lobby ! RegisterRobot(name)
-      // }
+      for(i <- 1 to 15){
+        val name = "Robot"+i
+        lobby ! RegisterRobot(name)
+      }
       (lobby ? Register(username)).asPromise.map {
         case cC: CannotConnect =>
           initier ! cC
@@ -166,7 +166,7 @@ class Chifoumi extends Actor {
   
   def getLobby(name: String) : ActorRef = {
     try {
-      context.actorOf(Props(new Lobby(name, 2, self)),name=name)
+      context.actorOf(Props(new Lobby(name, 16, self)),name=name)
     } catch {
       case _ : InvalidActorNameException => 
         context.actorFor(name)
@@ -196,7 +196,7 @@ class Chifoumi extends Actor {
   
   def registerRobots(number : Int, tournament: String, lobby: ActorRef) = {
     if(!context.children.toList.exists(_.path.name == "Robot1-"+tournament))
-    for(i <- 1 to number){
+    for(i <- 30 to number){
       val name = "Robot"+i
       //val playor = context.actorOf(Props(new RandomRobot(name)), name = name+"-"+tournament)
       //context.watch(playor)
@@ -382,7 +382,7 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
         if(players.size == slots) {
           tourneyList = new Random().shuffle(players.toList)
           myTourney = Some(context.actorOf(Props(new Tournament(tourneyList, 
-            { new ValidChoumi(_,_) with Timed
+            { new ValidChoumi(_,_)
              
             }, 
             self)), name=tournament+"-tournament"))

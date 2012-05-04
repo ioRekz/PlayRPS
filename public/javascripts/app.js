@@ -5,7 +5,7 @@ $(function() {
 			socketz.on("newGame", function(data) {
 				$("#p1").html(data.firstPlayer);
 				$("#p2").html(data.secondPlayer).hide().fadeIn("slow");
-				$(".result").html("VERSUSS");
+				$(".result").html("VERSUS");
 			});
 			
 			socketz.on("tourneyStart", function(data) {
