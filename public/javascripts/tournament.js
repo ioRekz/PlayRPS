@@ -73,5 +73,5 @@ var setWinner = function(winner, looser, round) {
 
 var scalePlayer = function(name) {
   var lastSeen = $('.opponent[data-id='+name+']').last()
-  $('body').scrollTo(lastSeen, {offset: -400})
+  $('body').scrollTo(lastSeen, {duration: 100, offset: -400})
 }

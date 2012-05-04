@@ -1,5 +1,9 @@
 $(function() {
 			var refresh
+      
+      var init = function() {
+        
+      }
 
 			var socketz = new WSocket(wsURL);
 			socketz.on("newGame", function(data) {
@@ -9,9 +13,10 @@ $(function() {
 			});
 			
 			socketz.on("tourneyStart", function(data) {
-      console.log("tourneystart");
+        console.log("tourneystart!");
 				createDomBracket(data.members)
 				$('#players').hide()
+        //scalePlayer(currentUser);
 			});
       
       socketz.on("persoresult", function(data) {
@@ -69,10 +74,6 @@ $(function() {
 				} 
 			});
 
-			socketz.on("tourneyStart", function(data) {
-				createDomBracket(data.members)
-				$('#players').hide()
-			});
 			socketz.on("quit", function(data) {
 				$('#'+data.user).remove()
 				//TODO same id as tree player?

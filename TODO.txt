@@ -1,5 +1,9 @@
 todo
 
+page accueil avec liste tournoi avec un stream pour les updates TR
+
+search / follow for any player in the tree 
+
 BUG si je rejoue avant qu'un nouveau match soit disponible : double résultat 
 
 OK -- envoyer les résultats intermédiaire. Pour l'instant le client a une notif que

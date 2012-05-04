@@ -36,7 +36,7 @@ case class PersonalResult(winner: String, move : String, looser: String, moveL :
 
 object Chifoumi {
 
-  val nbPlayer = 16
+  val nbPlayer = 64
 
 	implicit val timeout = Timeout(1 second)
 	lazy val default = {
