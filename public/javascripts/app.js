@@ -13,7 +13,6 @@ $(function() {
 			});
 			
 			socketz.on("tourneyStart", function(data) {
-        console.log("tourneystart!");
 				createDomBracket(data.members)
 				$('#players').hide()
         //scalePlayer(currentUser);

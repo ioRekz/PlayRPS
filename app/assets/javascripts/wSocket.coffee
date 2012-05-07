@@ -10,7 +10,8 @@ class window.WSocket
 				events[data.kind](data)
     
 	on: (event, func) ->
-    if(events[event]) console.log("A function for "+event+" is alrdy defined, overriding ...")
+		if events[event]
+			console.warn('Overriding existing event function for : '+event)
 		events[event] = func
 	
 	send: (msg) ->
