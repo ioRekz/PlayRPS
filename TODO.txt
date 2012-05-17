@@ -1,10 +1,12 @@
 todo
 
+update with last play version
+
 page accueil avec liste tournoi avec un stream pour les updates TR
 
 search / follow for any player in the tree 
 
-BUG si je rejoue avant qu'un nouveau match soit disponible : double résultat 
+OK -- BUG si je rejoue avant qu'un nouveau match soit disponible : double résultat 
 
 OK -- envoyer les résultats intermédiaire. Pour l'instant le client a une notif que
 pour un gagnant mais pas de draw ou de vainqueur dans un bo3

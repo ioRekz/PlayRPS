@@ -36,7 +36,7 @@ case class PersonalResult(winner: String, move : String, looser: String, moveL :
 
 object Chifoumi {
 
-  val nbPlayer = 64
+  val nbPlayer = 16
 
 	implicit val timeout = Timeout(1 second)
 	lazy val default = {
@@ -387,7 +387,7 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
         if(players.size == slots) {
           tourneyList = new Random().shuffle(players.toList)
           myTourney = Some(context.actorOf(Props(new Tournament(tourneyList, 
-            { new ValidChoumi(_,_)
+            { new ValidChoumi(_,_) 
              
             }, 
             self)), name=tournament+"-tournament"))

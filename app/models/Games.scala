@@ -25,7 +25,7 @@ trait ValidGame extends Actor {
     context.parent ! Result((winner,winmove),(looser,loosemov))
     //println("stoping game "+winner+" vs "+looser)
     //TODO let lobby be the gateway betw players/tourney println(context.actorFor("../../..").path.name)
-    //context.stop(self)
+    context.stop(self)
   }
     
   def receive = {
