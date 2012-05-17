@@ -10,6 +10,7 @@ $(function() {
 				$("#p1").html(data.firstPlayer);
 				$("#p2").html(data.secondPlayer).hide().fadeIn("slow");
 				$(".result").html("VERSUS");
+				$('#moves').show()
 			});
 			
 			socketz.on("tourneyStart", function(data) {
@@ -21,15 +22,20 @@ $(function() {
       socketz.on("persoresult", function(data) {
         $('.result').show();
         if(data.draw) {
-          $('.result').html("<span>"+ data.winner.move + " vs " + data.looser.move +"</span>");
-          $('.result').append("<br/>"+"Draw");
+					
+          $('.result').html($('#result-template').tmpl({mine: data.winner.move, his: data.looser.move}));
+          
           }
         else {
           var left = data.winner.name == currentUser ? data.winner.move : data.looser.move
           var right = data.winner.name != currentUser ? data.winner.move : data.looser.move
-          $('.result').html("<span>"+ left + " vs " + right +"</span>")
-          $('.result').append("<br/>"+ (data.winner.name == currentUser ? "You win" : "You lost"))
+					var reshtml = $('#result-template').tmpl({mine: left, his: right})
+					$('.result').html(reshtml);
+					
+          //$('.result').html("<span>"+ left + " vs " + right +"</span>")
+          //$('.result').append("<br/>"+ (data.winner.name == currentUser ? "You win" : "You lost"))
         }
+				$('#moves').hide();
       });
 			
 			socketz.on("result", function(data) {
@@ -46,7 +52,7 @@ $(function() {
 
 			socketz.on("youwin", function(data) {
 				$('.result').show();
-				$('.result').html("Gratz, you secured 1st place in"+ currentTournament + " tournament !")
+				$('.result').html("Gratz, you secured 1st place in "+ currentTournament + " tournament !")
 			});
 
 			socketz.on("join", function(data) {

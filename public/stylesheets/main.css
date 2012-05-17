@@ -26,6 +26,11 @@
   margin-bottom: 20px;
 }
 
+.result-icon {
+	height: 50px;
+	width: 50px;
+}
+
 #bracket {
   z-index: 100;
   font-family: "Verdana";

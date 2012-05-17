@@ -55,7 +55,7 @@ trait Infos extends Actor {
 
 object ValidChoumi {
   def apply(player1: String, player2: String) = new ValidChoumi(player1, player2)
-  val rules = List("paper","cisor", "rock")
+  val rules = List("paper","scissors", "rock")
 }
 
 class ValidChoumi(player1: String, player2: String) extends ValidGame with Infos {
