@@ -1,0 +1,11 @@
+@main("Stream test") {
+	
+	<script>
+	
+		var source = new EventSource('@routes.Application.sse');
+		source.addEventListener('message', function(e) {
+			console.log(e.data);
+		}, false);
+	
+	</script>
+}
