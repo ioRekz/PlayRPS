@@ -18,9 +18,7 @@ object Application extends Controller {
 	var tourney : Boolean = false
   
   def index = Action { implicit resquest =>
-    Async {
-      Chifoumi.getGames.map ( games => Ok(views.html.hello(games)) )
-    }
+    Redirect(routes.Application.hello)
     
   }
 	
@@ -43,31 +41,27 @@ object Application extends Controller {
 		Ok.stream(enum &> Comet(callback = "parent.cometMessage"))
 	}
 	
-	def stream = Action {
-		Ok(views.html.stream())
+	def hello = Action { implicit resquest =>
+		Async {
+			Chifoumi.getLobbies.map { lobbies =>
+				Ok(views.html.hello(lobbies))
+			}
+		}
 	}
 	
-	val toEventSource = Enumeratee.map[String]{ msg => 
-		"data: "+msg+"\n\n"}
-
- val getHeap : Enumerator[String] = Enumerator("kiki")
+	val toEventSource = Enumeratee.map[JsValue]{ msg => 
+		println("data: "+msg+"\n")
+		"data: "+msg+"\n\n"
+	}
 
   def sse = Action {
-		val enum = Enumerator.imperative[String]()
-			Akka.system.scheduler.scheduleOnce(6 seconds) {
-        enum.push("lol")
-				Akka.system.scheduler.scheduleOnce(2 seconds) {
-					enum.push("lol")
-				}
-			}
-   SimpleResult(
-        header = ResponseHeader(OK, Map(
-          CONTENT_LENGTH -> "-1",
-          CONTENT_TYPE -> "text/event-stream"
-        )), 
-        enum &> toEventSource);
-		}
-		
-	
-	
+		val enum = Chifoumi.createHelloEnum()
+		SimpleResult(
+			header = ResponseHeader(OK, Map(
+				CONTENT_LENGTH -> "-1",
+				CONTENT_TYPE -> "text/event-stream"
+			)), 
+			enum &> toEventSource);
+	}
+
 }

@@ -10,6 +10,10 @@
   border-bottom: 1px solid #dedede
 }
 
+.lobbies {
+	width: 50%;
+}
+
 .matchinfo {
   margin-bottom: 15px;
 }

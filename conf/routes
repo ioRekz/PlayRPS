@@ -4,7 +4,7 @@
 
 # Home page
 GET			/													controllers.Application.index
-GET			/stream										controllers.Application.stream
+GET			/hello										controllers.Application.hello
 GET			/comet										controllers.Application.comet
 GET			/sse											controllers.Application.sse
 GET     /:tournament/:player      controllers.Application.join(player: String, tournament: String)

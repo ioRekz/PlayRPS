@@ -2,12 +2,18 @@ package models
 
 import akka.actor._
 import akka.util.duration._
+import akka.util.Duration
 import play.api.libs.concurrent._
 import play.api.libs.json._
 import play.api.libs.iteratee._
 import akka.util.Timeout
 import akka.pattern.ask
 import play.api.Play.current
+import scala.collection.parallel.ParSet
+import akka.dispatch.{ Future, Await }
+import play.api.mvc._
+
+
 
 case class Join(username: String, tournament: String)
 case class Connected(enumerator:Enumerator[JsValue], player: ActorRef)
@@ -24,8 +30,8 @@ case class Reconnect(channel : PushEnumerator[JsValue])
 case class StopIfYouCan()
 case object CheckMoves
 case object GetLobbyName
-case class LobbyName(lobby: String)
-case class Lobbies(lobbies : List[String])
+case class LobbyInfo(name: String, nbPlayers: Int, slots: Int)
+case class Lobbies(lobbies : List[LobbyInfo])
 case class DrawRes(winner : String, looser: String, move: String)
 case class Accepted(player: ActorRef)
 case class Register(player: String)
@@ -34,21 +40,71 @@ case class RegisterRobot(name:String)
 case class TourneyInfo(players: List[String], results: Rounds)
 case class PersonalResult(winner: String, move : String, looser: String, moveL : String, round: Int)
 
+
+
+
+
 object Chifoumi {
 
   val nbPlayer = 16
-
+	
 	implicit val timeout = Timeout(1 second)
 	lazy val default = {
     Akka.system.actorOf(Props[Chifoumi],name="chifoumi")
   }
 	
-	def getGames : Promise[List[String]] = {
-    (default ? GetLobbyName).asPromise.map {
-      case Lobbies(lobbies) =>
-        lobbies
-    }
-  }
+	
+	// def getGames : Promise[List[LobbyInfo]] = {
+    // (default ? GetLobbyName).asPromise.map {
+      // case Lobbies(lobbies) =>
+        // lobbies
+    // }
+  // }
+
+	
+	val clients : scala.collection.mutable.MutableList[PushEnumerator[JsValue]] = scala.collection.mutable.MutableList.empty
+	def createHelloEnum() : PushEnumerator[JsValue] = {
+		val enume = Enumerator.imperative[JsValue]()
+		clients += enume
+		println(clients)
+		enume
+	}
+	
+	def notifyJoinQuit(lobby: LobbyInfo)  {
+		val lobbyJson = Json.toJson(
+				Map(
+					"name" -> Json.toJson(lobby.name),
+					"nbPlayers" -> Json.toJson(lobby.nbPlayers),
+					"slots" -> Json.toJson(lobby.slots),
+					"html" -> Json.toJson(views.html.lobbyitem(lobby).toString.trim)
+				)
+			)
+		clients.foreach {
+			_.push(lobbyJson)
+			
+		}
+	}
+	
+	def writeEvent(client: PushEnumerator[String], lines: String*) {
+		// lines.foreach { line =>
+			// var data = line
+			// if(lines.tail == line)
+				// data = data + "\n"
+			// println(data)
+			// client.push(data)
+		// }
+		client.push(lines(0))
+		client.push("andTest\n")
+		
+	}
+	
+	def getLobbies = {
+		(default ? GetLobbyName).asPromise.map {
+			case Lobbies(lobbies) => 
+				println(lobbies)
+				lobbies
+		}
+	}
 	
 	def join(username:String, tournament: String):Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
     (default ? Join(username, tournament)).asPromise.map {
@@ -84,6 +140,7 @@ object Chifoumi {
 //case class PlayerInfo(name: String, socket: PushEnumerator[JsValue], actor: ActorRef)
 
 class Chifoumi extends Actor {
+
   
   var members = Map.empty[String, PushEnumerator[JsValue]]
   implicit val timeout = Timeout(2 seconds)
@@ -106,7 +163,7 @@ class Chifoumi extends Actor {
       val lobby = getLobby(tournament)
       for(i <- 1 to Chifoumi.nbPlayer-1){
         val name = "Robot"+i
-        lobby ! RegisterRobot(name)
+        //lobby ! RegisterRobot(name)
       }
       (lobby ? Register(username)).asPromise.map {
         case cC: CannotConnect =>
@@ -125,10 +182,26 @@ class Chifoumi extends Actor {
     
     case GetLobbyName => 
      // var lobbies : Set[String] = Set.empty
-      var lobbies = context.children.toList.filter{_.path.name.endsWith("-lobby")}.map { lobby => 
-        lobby.path.name.split("-lobby")(0)
-      }
-      sender ! Lobbies(lobbies)
+      // var lobbies = context.children.toList.map { _.path.name }
+			// aggregates { lobbies =>
+				// println(lobbies)
+				// sender ! Lobbies(lobbies)
+			// }
+			if(context.children.toList.isEmpty)
+				sender ! Lobbies(Nil)
+			else {
+				val firstSender = sender
+				var lobbies : ParSet[LobbyInfo] = ParSet.empty
+				context.children.foreach { lobby =>
+					(lobby ? GetLobbyName).asPromise.map {
+						case lob:LobbyInfo =>
+							lobbies = lobbies + lob
+							println(lobbies)
+							if(context.children.size == lobbies.size)
+								firstSender ! Lobbies(lobbies.toList)
+					}
+				}
+			}
       
 		
 		case NotifyJoin(joiner, allplayers) => {
@@ -165,10 +238,13 @@ class Chifoumi extends Actor {
 			notifyAll("quit", "user" -> Json.toJson(username))
 		
 	}
+	
+
   
   def getLobby(name: String) : ActorRef = {
     try {
       context.actorOf(Props(new Lobby(name, Chifoumi.nbPlayer, self)),name=name)
+			
     } catch {
       case _ : InvalidActorNameException => 
         context.actorFor(name)
@@ -268,6 +344,14 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
   var tourneyList : List[String] = Nil
   implicit val timeout = Timeout(2 seconds)
   import scala.util.Random
+	
+	override def preStart() = {
+    Chifoumi.notifyJoinQuit(getInfo)
+  }
+	
+	override def postStop() = {
+		
+	}
   
   def registerPlayer(name: String) : Either[String,(ActorRef, PushEnumerator[JsValue])] =  {
     val channel =  Enumerator.imperative[JsValue]()
@@ -332,6 +416,9 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
         case None =>
           println("dead "+tn.path.name)
           players = players - tn.path.name
+					if(players.size == 0)
+						context.stop(self)
+					Chifoumi.notifyJoinQuit(getInfo)
       }
     
     case WinLost(winner, winmove, looser, loosemove, round) => 
@@ -370,7 +457,7 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
       
     case GetLobbyName =>
       println("reponse from lobby "+tournament)
-      sender ! LobbyName(tournament)
+      sender ! LobbyInfo(tournament, players.size, slots)
   }
   
   def checkIn(name: String, playor: ActorRef) {
@@ -384,6 +471,7 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
         }
       case None =>
         players = players + name
+				Chifoumi.notifyJoinQuit(getInfo)
         if(players.size == slots) {
           tourneyList = new Random().shuffle(players.toList)
           myTourney = Some(context.actorOf(Props(new Tournament(tourneyList, 
@@ -396,6 +484,10 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
         } else playor ! Registered(players.toList)
     }
   }
+	
+	def getInfo : LobbyInfo = {
+		LobbyInfo(tournament, players.size, slots)
+	}
   
   def fluentJson(kind: String, elems: Seq[(String, JsValue)] ) : JsObject = {
      Json.toJson(
@@ -418,3 +510,5 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
     context.actorSelection("*") ! Tell(json)
   }
 }
+
+	
