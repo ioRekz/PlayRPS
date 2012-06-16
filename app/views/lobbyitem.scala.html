@@ -4,6 +4,24 @@
 	<td class="lobbyname">@tourney.name</td>
 	<td><span class="nbPlayers">@tourney.nbPlayers</span> / @tourney.slots</td>
 	<td>
-		<a href="@routes.Application.join("david",tourney.name)"><i class="icon-play"></i></a>
+		<a data-toggle="modal" href="#myModal-@tourney.name">
+			<i class="@if(tourney.nbPlayers == tourney.slots) {icon-eye-open} else {icon-play}"></i>
+		</a>
+		
+
+		<div class="modal hide" id="myModal-@tourney.name">
+			 <div class="modal-header">
+			   <button type="button" class="close" data-dismiss="modal">×</button>
+			   <h3>Choose a nickname</h3>
+			 </div>
+			 <div class="modal-body">
+			   <input type="text" class="span2 nameInput" placeholder="Type your nickname here">
+			 </div>
+			 <div class="modal-footer">
+			   <a href="#" class="btn" data-dismiss="modal">Close</a>
+			   <a data-id="@tourney.name" href="#" class="btn btn-primary playButton">Play</a>
+		</div>
+</div>  
 	</td>
 </tr>
+  

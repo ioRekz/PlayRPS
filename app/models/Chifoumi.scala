@@ -475,7 +475,7 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
         if(players.size == slots) {
           tourneyList = new Random().shuffle(players.toList)
           myTourney = Some(context.actorOf(Props(new Tournament(tourneyList, 
-            { new ValidChoumi(_,_) 
+            { new ValidChoumi(_,_) with BestOf3
              
             }, 
             self)), name=tournament+"-tournament"))

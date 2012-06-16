@@ -64,7 +64,7 @@ trait Timed extends ValidGame {
   }
 }
 
-trait BestOf3 extends ValidGame {
+trait BestOf3 extends ValidGame with Infos {
   
   var wins : List[String] = Nil
   
@@ -81,7 +81,8 @@ trait BestOf3 extends ValidGame {
         }
         else {
           wins = wins :+ res.winner._1
-          startGame()
+          lobby ! PersonalResult(res.winner._1, res.winner._2, res.looser._1, res.looser._2, getRound)
+          self ! Start
           None
         }
         

@@ -15,4 +15,14 @@ $(function() {
 		
 		console.log(data.name+"  "+data.nbPlayers);
 	}, false);
+
+	$('.playButton').click(function(e) {
+		e.preventDefault();
+		var nickname = $('.nameInput:visible').val();
+		console.info(nickname)
+		var tourney = $(this).attr('data-id');
+		if( nickname )
+			window.location = "/"+tourney+"/"+nickname
+		else alert("need pseudo")
+	});
 });
