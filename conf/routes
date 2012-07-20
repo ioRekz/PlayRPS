@@ -4,10 +4,11 @@
 
 # Home page
 GET			/													controllers.Application.index
-GET			/hello										controllers.Application.hello
-GET			/comet										controllers.Application.comet
-GET			/sse											controllers.Application.sse
-GET     /:tournament/:player      controllers.Application.join(player: String, tournament: String)
+GET			/hello											controllers.Application.hello
+GET			/comet											controllers.Application.comet
+GET			/sse												controllers.Application.sse
+GET    		/:tournament/:player      					controllers.Application.join(player: String, tournament: String)
+GET			/send												controllers.Application.sendEvent
 
 
 GET			/socketJoin								controllers.Application.socketJoin(player: String, tournament: String)

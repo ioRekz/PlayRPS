@@ -48,6 +48,11 @@ object Application extends Controller {
 			}
 		}
 	}
+
+	def sendEvent = Action {
+		Chifoumi.notifyJoinQuit(LobbyInfo("test",2,5))
+		Redirect(routes.Application.hello)
+	}
 	
 	val toEventSource = Enumeratee.map[JsValue]{ msg => 
 		println("data: "+msg+"\n")
