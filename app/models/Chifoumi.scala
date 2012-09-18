@@ -24,6 +24,7 @@ case class Quit(username: String)
 case class NotifyJoin(username: String, listplayers: List[String])
 case class WinLost(winner: String, move : String, looser: String, moveL : String, round: Int)
 case class JoinTourney(tn : TourneyInfo)
+case class SpecTourney(tn: TourneyInfo)
 case class Tell(msg: JsObject)
 case class Registered(players: List[String])
 case class Reconnect(channel : PushEnumerator[JsValue])
@@ -36,6 +37,7 @@ case class DrawRes(winner : String, looser: String, move: String)
 case class Accepted(player: ActorRef)
 case class Register(player: String)
 case class Remove(player: String)
+case class RegisterRobotIn(name: String, tourney: String)
 case class RegisterRobot(name:String)
 case class TourneyInfo(players: List[String], results: Rounds)
 case class PersonalResult(winner: String, move : String, looser: String, moveL : String, round: Int)
@@ -46,7 +48,7 @@ case class PersonalResult(winner: String, move : String, looser: String, moveL :
 
 object Chifoumi {
 
-  val nbPlayer = 16
+  val nbPlayer = 32
 	
 	implicit val timeout = Timeout(1 second)
 	lazy val default = {
@@ -135,6 +137,11 @@ object Chifoumi {
     }
 
   }
+
+  def createRobot(robotName:String, tournament:String) {
+    default ! RegisterRobotIn(robotName, tournament)
+  }
+
 }
 
 //case class PlayerInfo(name: String, socket: PushEnumerator[JsValue], actor: ActorRef)
@@ -236,6 +243,10 @@ class Chifoumi extends Actor {
       context.actorSelection(username) ! StopIfYouCan
 			println("quit : "+username)
 			notifyAll("quit", "user" -> Json.toJson(username))
+
+    case RegisterRobotIn(robotName: String, tournament: String) =>
+      getLobby(tournament) ! RegisterRobot(robotName)
+    
 		
 	}
 	
@@ -282,60 +293,6 @@ class Chifoumi extends Actor {
       lobby
     }
   }
-  
-  // def subscribeTourney(username : String, tournament : String, playor: ActorRef) : Either[String, ActorRef] =  {
-
-    // val lobby : Either[String,ActorRef] = try { 
-      // Right(context.actorOf(Props(new Lobby(tournament, 16, self)),name=tournament+"-lobby"))
-    // }
-    // catch {
-      // case e : InvalidActorNameException if e.getMessage.contains("unique") => 
-        // Right(context.actorFor(tournament+"-lobby"))
-        
-      // case ee : InvalidActorNameException if !ee.getMessage.contains("unique") =>
-        // Left(ee.getMessage)
-        
-      // case err => Left(err.getMessage)
-    // }
-    
-    
-    // lobby match {
-      // case Right(lob) =>
-        // (lob  ? Register(username)).asPromise.map {
-          // case Players(players) =>
-            // playor ! Registered(players)
-            // self ! NotifyJoin(username, players)
-            
-          // case tn @ TourneyInfo(players, results) =>
-            // println("results from tourney "+results)
-            // playor ! JoinTourney(tn)
-            // self ! NotifyJoin(username, players)   
-        // }
-        // Right(playor)
-      // case Left(msg) =>
-        // Left(msg)
-    // }
-  // }
-  
-  // /**
-    // return error if fails, actorRef of player if he joined
-  // **/
-  // def registerPlayer(username: String, tournament: String, channel: PushEnumerator[JsValue]) : Either[String, ActorRef] = {
-    // val actorName = username + "-" +tournament
-    // val playor = try { 
-                  // context.actorOf(Props(new Player(username,channel)), name = actorName) 
-                // }
-                // catch {
-                  // case _ : InvalidActorNameException => 
-                    // println("reconnect "+context.actorFor(actorName).path)
-                    // context.actorFor(actorName)
-
-                    
-                // }
-    // playor ! Reconnect(channel)
-    
-    // subscribeTourney(username, tournament, playor)   
-  // }
 }
 
 class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : Set[String] = Set.empty) extends Actor {
@@ -355,7 +312,7 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
   
   def registerPlayer(name: String) : Either[String,(ActorRef, PushEnumerator[JsValue])] =  {
     val channel =  Enumerator.imperative[JsValue]()
-    if(players.contains(name)) {
+/*    if(players.contains(name)) {
       myTourney match {
         case Some(tourney) =>
           val player = context.actorFor(name) 
@@ -363,7 +320,7 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
           Right((player, channel))
         
         case None =>
-          Left("Username already used")
+          Left("Username already used") //tournament not started : player exists
       }
     } else {
         val player = try {
@@ -372,8 +329,46 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
           } 
           catch {
             case _ : InvalidActorNameException => 
-              println("Invalide state, user alrdy used")
+              println("Invalide state, user name alrdy used")
               context.actorFor(name) 
+          }
+          player ! SpecTourney(TourneyInfo(tourneyList,r))
+          Right((player, channel))
+      }*/
+
+      (players.contains(name), myTourney) match {
+        case (true, Some(tourney)) => 
+          val player = context.actorFor(name) 
+          player ! Reconnect(channel)
+          Right((player, channel))
+
+        case (true, None) => Left("Username already used") //tournament not started : player exists
+
+        case (false, None) => 
+          val player = try {
+              context.watch ( context.actorOf(Props(new Player(name,channel)), name =  name) )
+              
+            } 
+            catch {
+              case _ : InvalidActorNameException => 
+                println("Invalide state, user name alrdy used")
+                context.actorFor(name) 
+            }
+            Right((player, channel))
+        case (false, Some(tourney)) =>
+          val player = try {
+              context.watch ( context.actorOf(Props(new Player(name,channel)), name =  name) )
+              
+            } 
+            catch {
+              case _ : InvalidActorNameException => 
+                println("Invalide state, user name alrdy used")
+                context.actorFor(name) 
+            }
+          //spectate
+          (tourney ? GiveResults).asPromise.map {
+            case r:Rounds =>
+              player ! SpecTourney(TourneyInfo(tourneyList,r))
           }
           Right((player, channel))
       }
@@ -399,8 +394,8 @@ class Lobby(tournament: String, slots: Int, listener : ActorRef, var players : S
       
     case RegisterRobot(name) =>
       try {
-      val robot = context.actorOf(Props(new RandomRobot(name)), name = name)
-      checkIn(name, robot)
+        val robot = context.actorOf(Props(new RandomRobot(name)), name = name)
+        checkIn(name, robot)
       
       } catch {
         case _ => "No need to create robot"

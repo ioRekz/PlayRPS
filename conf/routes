@@ -3,15 +3,18 @@
 # ~~~~
 
 # Home page
-GET			/													controllers.Application.index
+GET			/												controllers.Application.index
 GET			/hello											controllers.Application.hello
 GET			/comet											controllers.Application.comet
-GET			/sse												controllers.Application.sse
-GET    		/:tournament/:player      					controllers.Application.join(player: String, tournament: String)
-GET			/send												controllers.Application.sendEvent
+GET			/sse											controllers.Application.sse
+GET			/createRobot/:tournament/:name					controllers.Application.robotJoin(name: String, tournament: String)
+GET    		/:tournament/:player      						controllers.Application.join(player: String, tournament: String)
+GET			/send											controllers.Application.sendEvent
 
 
-GET			/socketJoin								controllers.Application.socketJoin(player: String, tournament: String)
+GET			/socketJoin										controllers.Application.socketJoin(player: String, tournament: String)
+
+
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)

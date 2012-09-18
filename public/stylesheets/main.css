@@ -67,3 +67,9 @@
 .show-grid .show-grid [class*="span"] {
   background-color: #ccc;
 }
+
+#moves { padding-top: 20px;}
+
+.points { font-size: 100px;}
+
+.settings { padding-top: 10px; color: white; margin-left: 50px;}

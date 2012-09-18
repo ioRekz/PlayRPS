@@ -16,4 +16,3 @@ class window.WSocket
 	
 	send: (msg) ->
 		@socket.send msg
-    

@@ -67,8 +67,8 @@ var setWinner = function(winner, looser, round) {
 	var nextOpo = nextGame.find('.opponent.'+offsetPlayer);
 	nextOpo.append($("#name-template").tmpl({name: winner.name}))
 	nextOpo.attr('data-id', winner.name)
-  if(winner.name==currentUser)
-    scalePlayer(currentUser)
+ 	if(winner.name==currentUser && $('#followme').is(":checked"))
+   		scalePlayer(currentUser)
 }
 
 var scalePlayer = function(name) {

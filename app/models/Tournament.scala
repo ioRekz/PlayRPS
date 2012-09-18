@@ -34,7 +34,10 @@ case object Test extends TournamentMessage
 
 
 class Tournament(players: List[String], createGame: (String, String) => ValidGame, listener: ActorRef) extends Actor  {
-	require(players.length%2==0)
+	
+	val logz = Math.log(players.length) / Math.log(2)
+	println(Math.floor(logz) == logz)
+	require(Math.floor(logz) == logz)
 	
   implicit val timeout = Timeout(2 seconds) 
   

@@ -17,6 +17,11 @@ class Player(name: String, var channel : PushEnumerator[JsValue]) extends Actor 
       println("infoooooooooooos")
       notifyMe("infos", "user" -> Json.toJson(name), "members" -> Json.toJson(infos.players), "started" -> Json.toJson(currentGame.isDefined),
         "results" -> parseRes(infos.results), "currentGame" -> Json.toJson(currentOpo.getOrElse("none")))
+
+    case SpecTourney(infos) =>
+      println("spec!!!!!!!!!")
+      notifyMe("spectate", "user" -> Json.toJson(name), "members" -> Json.toJson(infos.players),
+        "results" -> parseRes(infos.results))
       
     case Registered(players) =>
       println(players)
@@ -34,6 +39,7 @@ class Player(name: String, var channel : PushEnumerator[JsValue]) extends Actor 
       }
       
     case Reconnect(channel) => 
+      println("reconnnect")
       this.channel = channel
       currentGame.foreach { game => 
         game.path.name.split("-").foreach { p =>

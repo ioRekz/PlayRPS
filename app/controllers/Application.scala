@@ -59,7 +59,7 @@ object Application extends Controller {
 		"data: "+msg+"\n\n"
 	}
 
-  def sse = Action {
+  	def sse = Action {
 		val enum = Chifoumi.createHelloEnum()
 		SimpleResult(
 			header = ResponseHeader(OK, Map(
@@ -67,6 +67,11 @@ object Application extends Controller {
 				CONTENT_TYPE -> "text/event-stream"
 			)), 
 			enum &> toEventSource);
+	}
+
+	def robotJoin(name: String, tourney: String) = Action { implicit request =>
+	  Chifoumi.createRobot(name, tourney)
+	  Ok("Created")	
 	}
 
 }
