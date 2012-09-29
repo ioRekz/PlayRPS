@@ -2,16 +2,19 @@ package models
 
 import akka.actor._
 import play.api.libs.iteratee._
+import play.api.Play.current
+import play.api.libs.concurrent._
+import akka.util.duration._
 import play.api.libs.json._
 
 class Player(name: String, var channel : PushEnumerator[JsValue]) extends Actor {
 
   var currentGame : Option[ActorRef] = None
   var currentOpo : Option[String] = None
-  
+
   override def preStart() = {
   }
-    
+
   def receive = {
     case JoinTourney(infos) =>
       println("infoooooooooooos")

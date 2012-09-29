@@ -53,7 +53,6 @@ $(function() {
 	});
 
 	socketz.on("result", function(data) {
-		console.log("RESULT!!")
 		if (data.winner.name == currentUser) {
 			$('#p1p').empty();
 			$('#p2p').empty();
@@ -98,7 +97,6 @@ $(function() {
 	socketz.on("infos", function(data) {
 		console.log('infos')
 		if (data.started) {
-			console.log(data.results)
 			$('#players').hide();
 			$("#p1").html(currentUser);
 			$("#p2").html(data.currentGame).hide().fadeIn("slow");
