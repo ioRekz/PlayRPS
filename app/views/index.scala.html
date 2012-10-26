@@ -1,14 +1,14 @@
-@(username: String, tournament: String = "default")(implicit request: RequestHeader)
+@(username: String, tournament: String = "default", slots: Int = 8)(implicit request: RequestHeader)
 
 @main("Welcome to Play 2.0") {
   <div class="game">
 		<div class="row matchinfo">
-      
+
         <div class="span4 playerrow">
           <strong class="player" id="p1"></strong>
           <div class="points" id="p1p"></div>
         </div>
-        
+
         <div class="span4" >
           <div class="result">
           </div>
@@ -16,13 +16,13 @@
             <div class="bar"></div>
           </div>
         </div>
-        
+
         <div class="span4">
           <strong class="player" id="p2"></strong>
           <div class="points" id="p2p"></div>
         </div>
     </div>
-		
+
     <div class="row" >
         <div class="span12" id="moves">
           <input class="btn" type="button" value="Paper">
@@ -31,7 +31,7 @@
         </div>
 		</div>
     </div>
- 
+
   <div class="row" >
     <div class="span12">
       <div id="bracket">
@@ -40,12 +40,12 @@
 		</div>
   </div>
 
-	
-	
+
+
     <script type="text/html" id="round-template">
       <div class="round" id="round-${round}">
         <div class="nodes" style="margin-top:${mgtop}px">
-          
+
         </div>
       </div>
     </script>
@@ -55,12 +55,12 @@
         </div>
         <div class="bracket-${direction}"></div>
       </div>
-    </script>   
+    </script>
     <script type="text/html" id="opponent-template">
       <div class="opponent ${nbOpo} {{if winner}}winner{{/if}}" data-id="${name}">
       {{tmpl "#name-template"}}
       <div class="score">${score}</div>
-    </script> 
+    </script>
     <script type="text/html" id="line-template">
       <div class="bracket-${type}" style="height: ${height}px"></div>
     </script>
@@ -71,22 +71,22 @@
         <span>${name}</span>
       {{/if}}
     </script>
-		
+
 		<script id="result-template" type="text/html">
 			<img src="/assets/images/${mine}.png" style="float: left"/>
 			<img src="/assets/images/${his}.png" style="float: right"/>
 
 		</script>
-		
+
 		<script type="text/javascript">
 			var currentUser = "@username"
-			var wsURL = "@routes.Application.socketJoin(username, tournament).webSocketURL()"
+			var wsURL = "@routes.Application.socketJoin(username, tournament, slots).webSocketURL()"
       var currentTournament = "@tournament"
 		</script>
-		
+
 		<script src="@routes.Assets.at("javascripts/wSocket.js")" type="text/javascript"></script>
 		<script src="@routes.Assets.at("javascripts/tournament.js")" type="text/javascript"></script>
 		<script src="@routes.Assets.at("javascripts/app.js")" type="text/javascript"></script>
 		<script src="@routes.Assets.at("javascripts/jquery.scrollTo-1.4.2.js")" type="text/javascript"></script>
-		
+
 }

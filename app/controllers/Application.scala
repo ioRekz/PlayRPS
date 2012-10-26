@@ -16,23 +16,23 @@ import akka.util.duration._
 object Application extends Controller {
 
 	var tourney : Boolean = false
-  
+
   def index = Action { implicit resquest =>
     Redirect(routes.Application.hello)
-    
+
   }
-	
-	def socketJoin(player : String, tournament: String) = WebSocket.async[JsValue] { request  =>
-		Chifoumi.join(player, tournament)
+
+	def socketJoin(player : String, tournament: String, slots: Int) = WebSocket.async[JsValue] { request  =>
+		Chifoumi.join(player, tournament, slots)
 	}
-	
-	def join(player: String, tournament: String) = Action { implicit request =>
-		
-		Ok(views.html.index(player,tournament))
+
+	def join(player: String, tournament: String, slots: Int) = Action { implicit request =>
+
+		Ok(views.html.index(player,tournament, slots))
 	}
-	
+
 	var clients : List[PushEnumerator[String]] = Nil
-  
+
 	def comet = Action {
 		val enum = Enumerator.imperative[String]()
 		Akka.system.scheduler.scheduleOnce(6 seconds) {
@@ -40,7 +40,7 @@ object Application extends Controller {
     }
 		Ok.stream(enum &> Comet(callback = "parent.cometMessage"))
 	}
-	
+
 	def hello = Action { implicit resquest =>
 		Async {
 			Chifoumi.getLobbies.map { lobbies =>
@@ -53,8 +53,8 @@ object Application extends Controller {
 		Chifoumi.notifyJoinQuit(LobbyInfo("test",2,5))
 		Redirect(routes.Application.hello)
 	}
-	
-	val toEventSource = Enumeratee.map[JsValue]{ msg => 
+
+	val toEventSource = Enumeratee.map[JsValue]{ msg =>
 		println("data: "+msg+"\n")
 		"data: "+msg+"\n\n"
 	}
@@ -65,13 +65,13 @@ object Application extends Controller {
 			header = ResponseHeader(OK, Map(
 				CONTENT_LENGTH -> "-1",
 				CONTENT_TYPE -> "text/event-stream"
-			)), 
+			)),
 			enum &> toEventSource);
 	}
 
 	def robotJoin(name: String, tourney: String) = Action { implicit request =>
 	  Chifoumi.createRobot(name, tourney)
-	  Ok("Created")	
+	  Ok("Created")
 	}
 
 }
