@@ -70,6 +70,6 @@
 
 #moves { padding-top: 20px;}
 
-.points { font-size: 100px;}
+.points { padding-top: 20px; padding-right: 5px;}
 
 .settings { padding-top: 10px; color: white; margin-left: 50px;}

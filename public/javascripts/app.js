@@ -43,8 +43,14 @@ $(function() {
 			})
 			$('.result').html(reshtml);
 
-			if(data.winner.name == currentUser) $('#p1p').append("."); 
-			else $('#p2p').append(".")
+			var updated;
+			if(data.winner.name == currentUser) updated = $('#p1p > .badge')//.append("<span data-score='0' class='badge badge-inverse'>1</span>");
+			else updated = $('#p2p > .badge')//.append("<span class='badge badge-inverse'>1</span>")
+
+		  var score = parseInt(updated.data("score"))
+			updated.text(score + 1);
+		  updated.data("score", score + 1)
+
 
 			//$('.result').html("<span>"+ left + " vs " + right +"</span>")
 			//$('.result').append("<br/>"+ (data.winner.name == currentUser ? "You win" : "You lost"))

@@ -168,9 +168,9 @@ class Chifoumi extends Actor {
       // } else {
       val initier = sender
       val lobby = getLobby(tournament, slots)
-      for(i <- 1 to Chifoumi.nbPlayer-1){
+      for(i <- 1 to slots-1){
         val name = "Robot"+i
-        //lobby ! RegisterRobot(name)
+        lobby ! RegisterRobot(name)
       }
       (lobby ? Register(username)).asPromise.map {
         case cC: CannotConnect =>
